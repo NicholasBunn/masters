@@ -1,0 +1,82 @@
+import sys
+import grpc
+import proto.power_estimation_pb2 as power_estimation_pb2
+import proto.power_estimation_pb2_grpc as power_estimation_pb2_grpc
+import logging
+import pandas as pd
+from concurrent import futures
+
+def importData(excelFileName):
+    # This function receives a filename ("filaname.xlsx") as an input, reads it into a Pandas dataframe, and returns the generated dataFrame
+
+    # Import ship and weather data for estimation
+    dataSet = pd.read_excel(excelFileName) # This is a dataFrame
+
+    # I'm not entirely sure if/why these two lines are requried, but Gerhard had them so I'll leave them alone
+    # dataSet = dataSet.reset_index()
+    # dataSet = dataSet.reset_index()
+
+    return dataSet # NOTE: "dataSet" is a dataFrame
+
+class FetchDataServicer(power_estimation_pb2_grpc.FetchDataServicer):
+    def FetchDataService(self, request, context):
+        print("FetchDataService starting")
+        thisResponse = power_estimation_pb2.RawDataMessage()
+        print("Response created, importing data.")
+        rawDataSet = importData(request.input_file) # NOTE: This is quite a slow function, it could be sped up if csv files were read instead of Excel files
+        print("Data imported, serialising data")
+        thisResponse.index_number.extend(rawDataSet['index number'])
+        thisResponse.time_and_date.extend(rawDataSet['time and date number'])
+        thisResponse.port_prop_motor_current.extend(rawDataSet['PortPropMotorCurrent'])
+        thisResponse.port_prop_motor_power.extend(rawDataSet['PortPropMotorPower'])
+        thisResponse.port_prop_motor_speed.extend(rawDataSet['PortPropMotorSpeed'])
+        thisResponse.port_prop_motor_voltage.extend(rawDataSet['PortPropMotorVoltage'])
+        thisResponse.stbd_prop_motor_current.extend(rawDataSet['StbdPropMotorCurrent'])
+        thisResponse.stbd_prop_motor_power.extend(rawDataSet['StbdPropMotorPower'])
+        thisResponse.stbd_prop_motor_speed.extend(rawDataSet['StbdPropMotorSpeed'])
+        thisResponse.stbd_prop_motor_voltage.extend(rawDataSet['StbdPropMotorVoltage'])
+        thisResponse.rudder_order_port.extend(rawDataSet['RudderOrderPort'])
+        thisResponse.rudder_order_stbd.extend(rawDataSet['RudderOrderStbd'])
+        thisResponse.rudder_position_port.extend(rawDataSet['RudderPositionPort'])
+        thisResponse.rudder_position_stbd.extend(rawDataSet['RudderPositionStbd'])
+        thisResponse.propeller_pitch_port.extend(rawDataSet['PropellerPitchPort'])
+        thisResponse.propeller_pitch_stbd.extend(rawDataSet['PropellerPitchPort'])
+        thisResponse.shaft_rpm_indication_port.extend(rawDataSet['ShaftRPMIndicationPort'])
+        thisResponse.shaft_rpm_indication_stbd.extend(rawDataSet['ShaftRPMIndicationStbd'])
+        thisResponse.nav_time.extend(rawDataSet[' NavTime'])
+        thisResponse.latitude.extend(rawDataSet['Latitude'])
+        thisResponse.longitude.extend(rawDataSet['Longitude'])
+        thisResponse.sog.extend(rawDataSet['SOG'])
+        thisResponse.cog.extend(rawDataSet['COG'])
+        thisResponse.hdt.extend(rawDataSet['HDT'])
+        thisResponse.wind_direction_relative.extend(rawDataSet['WindDirRel'])
+        thisResponse.wind_speed.extend(rawDataSet['WindSpeed'])
+        thisResponse.depth.extend(rawDataSet['Depth'])
+        thisResponse.epoch_time.extend(rawDataSet['epoch time'])
+        thisResponse.brash_ice.extend(rawDataSet['Brash ice'])
+        thisResponse.ramming_count.extend(rawDataSet['Ramming count'])
+        thisResponse.ice_concentration.extend(rawDataSet['Ice concentration'])
+        thisResponse.ice_thickness.extend(rawDataSet['Ice thickness'])
+        thisResponse.flow_size.extend(rawDataSet['Flow size'])
+        thisResponse.beaufort_number.extend(rawDataSet['Beaufort number'])
+        thisResponse.wave_direction.extend(rawDataSet['Wave direction'])
+        thisResponse.wave_height_ave.extend(rawDataSet['Wave height ave'])
+        thisResponse.max_swell_height.extend(rawDataSet['Max swell height'])
+        thisResponse.wave_length.extend(rawDataSet['Wave length'])
+        thisResponse.wave_period_ave.extend(rawDataSet['Wave period ave'])
+        thisResponse.encounter_frequency_ave.extend(rawDataSet['Encounter frequency ave'])
+        print("Data has been serialised successfully")
+
+        return thisResponse
+
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    power_estimation_pb2_grpc.add_FetchDataServicer_to_server(FetchDataServicer(), server)
+    server.add_insecure_port('[::]:50051')
+    server.start()
+    print('Server started on port 50051')
+    server.wait_for_termination(timeout=20)
+
+if __name__ == '__main__':
+    logging.basicConfig()
+    serve()

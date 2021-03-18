@@ -1,0 +1,12 @@
+gen:
+	protoc -I src\ --go_out=src\go src\proto\power_estimation.proto
+	protoc --go-grpc_out=src\go src\proto\power_estimation.proto
+
+	protoc -I=src\ --python_out=src\python src\estimate\power_estimation.proto
+	py -m grpc_tools.protoc -I=src --python_out=src\python\estimate --grpc_python_out=src\python\estimate src\proto\power_estimation.proto	
+
+clean:
+	rm pb/*.go
+
+run:
+	go run src\go\main.go
