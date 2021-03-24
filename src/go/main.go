@@ -34,7 +34,7 @@ if it's done in error handling) to be checked before service calls are made. Thi
 func main() {
 	// Spin up Python services
 	fmt.Println("Invoking Python services")
-	fetchServerCmd := exec.Command("python", "./src/python/estimate/fetchServer.py")
+	fetchServerCmd := exec.Command("python3", "./src/python/estimate/fetchServer.py")
 	errFSC := fetchServerCmd.Start() // MEEP use Run() or Start()?
 	if errFSC != nil {
 		/* MEEP Do I want a fatal error here, or should I rather block service calls requiring
@@ -44,14 +44,14 @@ func main() {
 		log.Fatal(errFSC)
 	}
 
-	prepareServerCmd := exec.Command("python", "./src/python/estimate/prepareServer.py")
+	prepareServerCmd := exec.Command("python3", "./src/python/estimate/prepareServer.py")
 	errPSC := prepareServerCmd.Start()
 	if errPSC != nil {
 		fmt.Println("Failed to invoke Python prepareServer")
 		log.Fatal(errPSC)
 	}
 
-	estimateServerCmd := exec.Command("python", "./src/python/estimate/estimateServer.py")
+	estimateServerCmd := exec.Command("python3", "./src/python/estimate/estimateServer.py")
 	errESC := estimateServerCmd.Start()
 	if errESC != nil {
 		fmt.Println("Failed to invoke Python estimateServer")

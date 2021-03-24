@@ -19,8 +19,8 @@ def loadModel(modelType):
     # NOTE: The model that is called is passed the absolute path as opposed to only the model name
     def modelSelector(argument):
         switcher = {
-            0: "C:/Users/nicho/go/src/github.com/nicholasbunn/SANAE60/src/python/estimate/OpenWaterModel_R67.h5", # If no model is supplied, assume open water operation
-            1: "C:/Users/nicho/go/src/github.com/nicholasbunn/SANAE60/src/python/estimate/OpenWaterModel_R67.h5",
+            0: "/home/nic/go/src/github.com/nicholasbunn/SANAE60/src/python/estimate/OpenWaterModel_R67.h5", # If no model is supplied, assume open water operation
+            1: "/home/nic/go/src/github.com/nicholasbunn/SANAE60/src/python/estimate/OpenWaterModel_R67.h5", #C:/Users/nicho/go/src/github.com/nicholasbunn/SANAE60/src/python/estimate/OpenWaterModel_R67.h5
             2: "IceModel_R58.h5",
         }
         return switcher.get(argument, "C:/Users/nicho/go/src/github.com/nicholasbunn/SANAE60/src/python/estimate/OpenWaterModel_R67.h5") # Again, if no model is supplied, assume open water operation

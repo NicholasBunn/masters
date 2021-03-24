@@ -10,7 +10,7 @@ def importData(excelFileName):
     # This function receives a filename ("filaname.xlsx") as an input, reads it into a Pandas dataframe, and returns the generated dataFrame
 
     # Import ship and weather data for estimation
-    dataSet = pd.read_excel(excelFileName) # This is a dataFrame
+    dataSet = pd.read_excel(excelFileName, engine = "openpyxl") # This is a dataFrame
 
     # I'm not entirely sure if/why these two lines are requried, but Gerhard had them so I'll leave them alone
     # dataSet = dataSet.reset_index()

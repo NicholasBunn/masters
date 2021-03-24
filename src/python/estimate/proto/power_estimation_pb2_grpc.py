@@ -128,7 +128,8 @@ class PrepareData(object):
 
 
 class PowerEstimateStub(object):
-    """Missing associated documentation comment in .proto file."""
+    """This service call shares the same name as in the PowerEstimationServicePackage - CHANGE!
+    """
 
     def __init__(self, channel):
         """Constructor.
@@ -144,7 +145,8 @@ class PowerEstimateStub(object):
 
 
 class PowerEstimateServicer(object):
-    """Missing associated documentation comment in .proto file."""
+    """This service call shares the same name as in the PowerEstimationServicePackage - CHANGE!
+    """
 
     def EstimateService(self, request, context):
         """Change this to stream response
@@ -169,7 +171,8 @@ def add_PowerEstimateServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class PowerEstimate(object):
-    """Missing associated documentation comment in .proto file."""
+    """This service call shares the same name as in the PowerEstimationServicePackage - CHANGE!
+    """
 
     @staticmethod
     def EstimateService(request,
@@ -198,13 +201,13 @@ class PowerEstimationServicePackageStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.EstimateService = channel.unary_unary(
-                '/estimate.power.PowerEstimationServicePackage/EstimateService',
+        self.EstimatorService = channel.unary_unary(
+                '/estimate.power.PowerEstimationServicePackage/EstimatorService',
                 request_serializer=proto_dot_power__estimation__pb2.ServicePackageRequestMessage.SerializeToString,
                 response_deserializer=proto_dot_power__estimation__pb2.EstimateResponseServiceMessage.FromString,
                 )
-        self.EvaluateService = channel.unary_unary(
-                '/estimate.power.PowerEstimationServicePackage/EvaluateService',
+        self.EvaluatorService = channel.unary_unary(
+                '/estimate.power.PowerEstimationServicePackage/EvaluatorService',
                 request_serializer=proto_dot_power__estimation__pb2.ServicePackageRequestMessage.SerializeToString,
                 response_deserializer=proto_dot_power__estimation__pb2.EvaluateResponseServiceMessage.FromString,
                 )
@@ -213,13 +216,13 @@ class PowerEstimationServicePackageStub(object):
 class PowerEstimationServicePackageServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def EstimateService(self, request, context):
+    def EstimatorService(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def EvaluateService(self, request, context):
+    def EvaluatorService(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -228,13 +231,13 @@ class PowerEstimationServicePackageServicer(object):
 
 def add_PowerEstimationServicePackageServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'EstimateService': grpc.unary_unary_rpc_method_handler(
-                    servicer.EstimateService,
+            'EstimatorService': grpc.unary_unary_rpc_method_handler(
+                    servicer.EstimatorService,
                     request_deserializer=proto_dot_power__estimation__pb2.ServicePackageRequestMessage.FromString,
                     response_serializer=proto_dot_power__estimation__pb2.EstimateResponseServiceMessage.SerializeToString,
             ),
-            'EvaluateService': grpc.unary_unary_rpc_method_handler(
-                    servicer.EvaluateService,
+            'EvaluatorService': grpc.unary_unary_rpc_method_handler(
+                    servicer.EvaluatorService,
                     request_deserializer=proto_dot_power__estimation__pb2.ServicePackageRequestMessage.FromString,
                     response_serializer=proto_dot_power__estimation__pb2.EvaluateResponseServiceMessage.SerializeToString,
             ),
@@ -249,7 +252,7 @@ class PowerEstimationServicePackage(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def EstimateService(request,
+    def EstimatorService(request,
             target,
             options=(),
             channel_credentials=None,
@@ -259,14 +262,14 @@ class PowerEstimationServicePackage(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/estimate.power.PowerEstimationServicePackage/EstimateService',
+        return grpc.experimental.unary_unary(request, target, '/estimate.power.PowerEstimationServicePackage/EstimatorService',
             proto_dot_power__estimation__pb2.ServicePackageRequestMessage.SerializeToString,
             proto_dot_power__estimation__pb2.EstimateResponseServiceMessage.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def EvaluateService(request,
+    def EvaluatorService(request,
             target,
             options=(),
             channel_credentials=None,
@@ -276,7 +279,7 @@ class PowerEstimationServicePackage(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/estimate.power.PowerEstimationServicePackage/EvaluateService',
+        return grpc.experimental.unary_unary(request, target, '/estimate.power.PowerEstimationServicePackage/EvaluatorService',
             proto_dot_power__estimation__pb2.ServicePackageRequestMessage.SerializeToString,
             proto_dot_power__estimation__pb2.EvaluateResponseServiceMessage.FromString,
             options, channel_credentials,

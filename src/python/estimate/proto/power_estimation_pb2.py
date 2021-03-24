@@ -18,9 +18,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='proto/power_estimation.proto',
   package='estimate.power',
   syntax='proto3',
-  serialized_options=b'Z\007powerpb',
+  serialized_options=b'Z\rproto;powerpb',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x1cproto/power_estimation.proto\x12\x0e\x65stimate.power\"e\n\x1cServicePackageRequestMessage\x12\x12\n\ninput_file\x18\x01 \x01(\t\x12\x31\n\nmodel_type\x18\x02 \x01(\x0e\x32\x1d.estimate.power.ModelTypeEnum\"8\n\x1e\x45stimateResponseServiceMessage\x12\x16\n\x0epower_estimate\x18\x01 \x03(\x02\"i\n\x1e\x45valuateResponseServiceMessage\x12\x16\n\x0epower_estimate\x18\x01 \x03(\x02\x12\x14\n\x0cpower_actual\x18\x02 \x03(\x02\x12\x19\n\x11speed_over_ground\x18\x03 \x03(\x02\"(\n\x12\x44\x61taRequestMessage\x12\x12\n\ninput_file\x18\x01 \x01(\t\"\x89\x08\n\x0eRawDataMessage\x12\x14\n\x0cindex_number\x18\x01 \x03(\x03\x12\x15\n\rtime_and_date\x18\x02 \x03(\x02\x12\x1f\n\x17port_prop_motor_current\x18\x03 \x03(\x02\x12\x1d\n\x15port_prop_motor_power\x18\x04 \x03(\x02\x12\x1d\n\x15port_prop_motor_speed\x18\x05 \x03(\x02\x12\x1f\n\x17port_prop_motor_voltage\x18\x06 \x03(\x02\x12\x1f\n\x17stbd_prop_motor_current\x18\x07 \x03(\x02\x12\x1d\n\x15stbd_prop_motor_power\x18\x08 \x03(\x02\x12\x1d\n\x15stbd_prop_motor_speed\x18\t \x03(\x02\x12\x1f\n\x17stbd_prop_motor_voltage\x18\n \x03(\x02\x12\x19\n\x11rudder_order_port\x18\x0b \x03(\x02\x12\x19\n\x11rudder_order_stbd\x18\x0c \x03(\x02\x12\x1c\n\x14rudder_position_port\x18\r \x03(\x02\x12\x1c\n\x14rudder_position_stbd\x18\x0e \x03(\x02\x12\x1c\n\x14propeller_pitch_port\x18\x0f \x03(\x02\x12\x1c\n\x14propeller_pitch_stbd\x18\x10 \x03(\x02\x12!\n\x19shaft_rpm_indication_port\x18\x11 \x03(\x02\x12!\n\x19shaft_rpm_indication_stbd\x18\x12 \x03(\x02\x12\x10\n\x08nav_time\x18\x13 \x03(\x03\x12\x10\n\x08latitude\x18\x14 \x03(\x02\x12\x11\n\tlongitude\x18\x15 \x03(\x02\x12\x0b\n\x03sog\x18\x16 \x03(\x02\x12\x0b\n\x03\x63og\x18\x17 \x03(\x02\x12\x0b\n\x03hdt\x18\x18 \x03(\x02\x12\x1f\n\x17wind_direction_relative\x18\x19 \x03(\x03\x12\x12\n\nwind_speed\x18\x1a \x03(\x02\x12\r\n\x05\x64\x65pth\x18\x1b \x03(\x02\x12\x12\n\nepoch_time\x18\x1c \x03(\x03\x12\x11\n\tbrash_ice\x18\x1d \x03(\x03\x12\x15\n\rramming_count\x18\x1e \x03(\x03\x12\x19\n\x11ice_concentration\x18\x1f \x03(\x03\x12\x15\n\rice_thickness\x18  \x03(\x03\x12\x11\n\tflow_size\x18! \x03(\x03\x12\x17\n\x0f\x62\x65\x61ufort_number\x18\" \x03(\x03\x12\x16\n\x0ewave_direction\x18# \x03(\x03\x12\x17\n\x0fwave_height_ave\x18$ \x03(\x02\x12\x18\n\x10max_swell_height\x18% \x03(\x02\x12\x13\n\x0bwave_length\x18& \x03(\x02\x12\x17\n\x0fwave_period_ave\x18\' \x03(\x02\x12\x1f\n\x17\x65ncounter_frequency_ave\x18( \x03(\x02\"\x97\x02\n\x13PreparedDataMessage\x12\x1d\n\x15port_prop_motor_speed\x18\x01 \x03(\x02\x12\x1d\n\x15stbd_prop_motor_speed\x18\x02 \x03(\x02\x12\x1c\n\x14propeller_pitch_port\x18\x03 \x03(\x02\x12\x1c\n\x14propeller_pitch_stbd\x18\x04 \x03(\x02\x12\x0b\n\x03sog\x18\x05 \x03(\x02\x12\x1f\n\x17wind_direction_relative\x18\x06 \x03(\x02\x12\x12\n\nwind_speed\x18\x07 \x03(\x02\x12\x17\n\x0f\x62\x65\x61ufort_number\x18\x08 \x03(\x02\x12\x16\n\x0ewave_direction\x18\t \x03(\x02\x12\x13\n\x0bwave_length\x18\n \x03(\x02\"\x97\x03\n\x16\x45stimateRequestMessage\x12\x1d\n\x15port_prop_motor_speed\x18\x01 \x03(\x02\x12\x1d\n\x15stbd_prop_motor_speed\x18\x02 \x03(\x02\x12\x1c\n\x14propeller_pitch_port\x18\x03 \x03(\x02\x12\x1c\n\x14propeller_pitch_stbd\x18\x04 \x03(\x02\x12\x0b\n\x03sog\x18\x05 \x03(\x02\x12\x1f\n\x17wind_direction_relative\x18\x06 \x03(\x02\x12\x12\n\nwind_speed\x18\x07 \x03(\x02\x12\x17\n\x0f\x62\x65\x61ufort_number\x18\x08 \x03(\x02\x12\x16\n\x0ewave_direction\x18\t \x03(\x02\x12\x13\n\x0bwave_length\x18\n \x03(\x02\x12\x18\n\x10motor_power_port\x18\x0b \x03(\x02\x12\x18\n\x10motor_power_stbd\x18\x0c \x03(\x02\x12\x14\n\x0coriginal_sog\x18\r \x03(\x02\x12\x31\n\nmodel_type\x18\x0e \x01(\x0e\x32\x1d.estimate.power.ModelTypeEnum\"b\n\x17\x45stimateResponseMessage\x12\x16\n\x0epower_estimate\x18\x01 \x03(\x02\x12\x14\n\x0cpower_actual\x18\x02 \x03(\x02\x12\x19\n\x11speed_over_ground\x18\x03 \x03(\x02*3\n\rModelTypeEnum\x12\n\n\x06UNKOWN\x10\x00\x12\r\n\tOPENWATER\x10\x01\x12\x07\n\x03ICE\x10\x02\x32\x63\n\tFetchData\x12V\n\x10\x46\x65tchDataService\x12\".estimate.power.DataRequestMessage\x1a\x1e.estimate.power.RawDataMessage2p\n\x0bPrepareData\x12\x61\n\x1aPrepareEstimateDataService\x12\x1e.estimate.power.RawDataMessage\x1a#.estimate.power.PreparedDataMessage2s\n\rPowerEstimate\x12\x62\n\x0f\x45stimateService\x12&.estimate.power.EstimateRequestMessage\x1a\'.estimate.power.EstimateResponseMessage2\x81\x02\n\x1dPowerEstimationServicePackage\x12o\n\x0f\x45stimateService\x12,.estimate.power.ServicePackageRequestMessage\x1a..estimate.power.EstimateResponseServiceMessage\x12o\n\x0f\x45valuateService\x12,.estimate.power.ServicePackageRequestMessage\x1a..estimate.power.EvaluateResponseServiceMessageB\tZ\x07powerpbb\x06proto3'
+  serialized_pb=b'\n\x1cproto/power_estimation.proto\x12\x0e\x65stimate.power\"e\n\x1cServicePackageRequestMessage\x12\x12\n\ninput_file\x18\x01 \x01(\t\x12\x31\n\nmodel_type\x18\x02 \x01(\x0e\x32\x1d.estimate.power.ModelTypeEnum\"8\n\x1e\x45stimateResponseServiceMessage\x12\x16\n\x0epower_estimate\x18\x01 \x03(\x02\"i\n\x1e\x45valuateResponseServiceMessage\x12\x16\n\x0epower_estimate\x18\x01 \x03(\x02\x12\x14\n\x0cpower_actual\x18\x02 \x03(\x02\x12\x19\n\x11speed_over_ground\x18\x03 \x03(\x02\"(\n\x12\x44\x61taRequestMessage\x12\x12\n\ninput_file\x18\x01 \x01(\t\"\x89\x08\n\x0eRawDataMessage\x12\x14\n\x0cindex_number\x18\x01 \x03(\x03\x12\x15\n\rtime_and_date\x18\x02 \x03(\x02\x12\x1f\n\x17port_prop_motor_current\x18\x03 \x03(\x02\x12\x1d\n\x15port_prop_motor_power\x18\x04 \x03(\x02\x12\x1d\n\x15port_prop_motor_speed\x18\x05 \x03(\x02\x12\x1f\n\x17port_prop_motor_voltage\x18\x06 \x03(\x02\x12\x1f\n\x17stbd_prop_motor_current\x18\x07 \x03(\x02\x12\x1d\n\x15stbd_prop_motor_power\x18\x08 \x03(\x02\x12\x1d\n\x15stbd_prop_motor_speed\x18\t \x03(\x02\x12\x1f\n\x17stbd_prop_motor_voltage\x18\n \x03(\x02\x12\x19\n\x11rudder_order_port\x18\x0b \x03(\x02\x12\x19\n\x11rudder_order_stbd\x18\x0c \x03(\x02\x12\x1c\n\x14rudder_position_port\x18\r \x03(\x02\x12\x1c\n\x14rudder_position_stbd\x18\x0e \x03(\x02\x12\x1c\n\x14propeller_pitch_port\x18\x0f \x03(\x02\x12\x1c\n\x14propeller_pitch_stbd\x18\x10 \x03(\x02\x12!\n\x19shaft_rpm_indication_port\x18\x11 \x03(\x02\x12!\n\x19shaft_rpm_indication_stbd\x18\x12 \x03(\x02\x12\x10\n\x08nav_time\x18\x13 \x03(\x03\x12\x10\n\x08latitude\x18\x14 \x03(\x02\x12\x11\n\tlongitude\x18\x15 \x03(\x02\x12\x0b\n\x03sog\x18\x16 \x03(\x02\x12\x0b\n\x03\x63og\x18\x17 \x03(\x02\x12\x0b\n\x03hdt\x18\x18 \x03(\x02\x12\x1f\n\x17wind_direction_relative\x18\x19 \x03(\x03\x12\x12\n\nwind_speed\x18\x1a \x03(\x02\x12\r\n\x05\x64\x65pth\x18\x1b \x03(\x02\x12\x12\n\nepoch_time\x18\x1c \x03(\x03\x12\x11\n\tbrash_ice\x18\x1d \x03(\x03\x12\x15\n\rramming_count\x18\x1e \x03(\x03\x12\x19\n\x11ice_concentration\x18\x1f \x03(\x03\x12\x15\n\rice_thickness\x18  \x03(\x03\x12\x11\n\tflow_size\x18! \x03(\x03\x12\x17\n\x0f\x62\x65\x61ufort_number\x18\" \x03(\x03\x12\x16\n\x0ewave_direction\x18# \x03(\x03\x12\x17\n\x0fwave_height_ave\x18$ \x03(\x02\x12\x18\n\x10max_swell_height\x18% \x03(\x02\x12\x13\n\x0bwave_length\x18& \x03(\x02\x12\x17\n\x0fwave_period_ave\x18\' \x03(\x02\x12\x1f\n\x17\x65ncounter_frequency_ave\x18( \x03(\x02\"\x97\x02\n\x13PreparedDataMessage\x12\x1d\n\x15port_prop_motor_speed\x18\x01 \x03(\x02\x12\x1d\n\x15stbd_prop_motor_speed\x18\x02 \x03(\x02\x12\x1c\n\x14propeller_pitch_port\x18\x03 \x03(\x02\x12\x1c\n\x14propeller_pitch_stbd\x18\x04 \x03(\x02\x12\x0b\n\x03sog\x18\x05 \x03(\x02\x12\x1f\n\x17wind_direction_relative\x18\x06 \x03(\x02\x12\x12\n\nwind_speed\x18\x07 \x03(\x02\x12\x17\n\x0f\x62\x65\x61ufort_number\x18\x08 \x03(\x02\x12\x16\n\x0ewave_direction\x18\t \x03(\x02\x12\x13\n\x0bwave_length\x18\n \x03(\x02\"\x97\x03\n\x16\x45stimateRequestMessage\x12\x1d\n\x15port_prop_motor_speed\x18\x01 \x03(\x02\x12\x1d\n\x15stbd_prop_motor_speed\x18\x02 \x03(\x02\x12\x1c\n\x14propeller_pitch_port\x18\x03 \x03(\x02\x12\x1c\n\x14propeller_pitch_stbd\x18\x04 \x03(\x02\x12\x0b\n\x03sog\x18\x05 \x03(\x02\x12\x1f\n\x17wind_direction_relative\x18\x06 \x03(\x02\x12\x12\n\nwind_speed\x18\x07 \x03(\x02\x12\x17\n\x0f\x62\x65\x61ufort_number\x18\x08 \x03(\x02\x12\x16\n\x0ewave_direction\x18\t \x03(\x02\x12\x13\n\x0bwave_length\x18\n \x03(\x02\x12\x18\n\x10motor_power_port\x18\x0b \x03(\x02\x12\x18\n\x10motor_power_stbd\x18\x0c \x03(\x02\x12\x14\n\x0coriginal_sog\x18\r \x03(\x02\x12\x31\n\nmodel_type\x18\x0e \x01(\x0e\x32\x1d.estimate.power.ModelTypeEnum\"b\n\x17\x45stimateResponseMessage\x12\x16\n\x0epower_estimate\x18\x01 \x03(\x02\x12\x14\n\x0cpower_actual\x18\x02 \x03(\x02\x12\x19\n\x11speed_over_ground\x18\x03 \x03(\x02*4\n\rModelTypeEnum\x12\x0b\n\x07UNKNOWN\x10\x00\x12\r\n\tOPENWATER\x10\x01\x12\x07\n\x03ICE\x10\x02\x32\x63\n\tFetchData\x12V\n\x10\x46\x65tchDataService\x12\".estimate.power.DataRequestMessage\x1a\x1e.estimate.power.RawDataMessage2p\n\x0bPrepareData\x12\x61\n\x1aPrepareEstimateDataService\x12\x1e.estimate.power.RawDataMessage\x1a#.estimate.power.PreparedDataMessage2s\n\rPowerEstimate\x12\x62\n\x0f\x45stimateService\x12&.estimate.power.EstimateRequestMessage\x1a\'.estimate.power.EstimateResponseMessage2\x83\x02\n\x1dPowerEstimationServicePackage\x12p\n\x10\x45stimatorService\x12,.estimate.power.ServicePackageRequestMessage\x1a..estimate.power.EstimateResponseServiceMessage\x12p\n\x10\x45valuatorService\x12,.estimate.power.ServicePackageRequestMessage\x1a..estimate.power.EvaluateResponseServiceMessageB\x0fZ\rproto;powerpbb\x06proto3'
 )
 
 _MODELTYPEENUM = _descriptor.EnumDescriptor(
@@ -31,7 +31,7 @@ _MODELTYPEENUM = _descriptor.EnumDescriptor(
   create_key=_descriptor._internal_create_key,
   values=[
     _descriptor.EnumValueDescriptor(
-      name='UNKOWN', index=0, number=0,
+      name='UNKNOWN', index=0, number=0,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
@@ -49,12 +49,12 @@ _MODELTYPEENUM = _descriptor.EnumDescriptor(
   containing_type=None,
   serialized_options=None,
   serialized_start=2186,
-  serialized_end=2237,
+  serialized_end=2238,
 )
 _sym_db.RegisterEnumDescriptor(_MODELTYPEENUM)
 
 ModelTypeEnum = enum_type_wrapper.EnumTypeWrapper(_MODELTYPEENUM)
-UNKOWN = 0
+UNKNOWN = 0
 OPENWATER = 1
 ICE = 2
 
@@ -856,8 +856,8 @@ _FETCHDATA = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=2239,
-  serialized_end=2338,
+  serialized_start=2240,
+  serialized_end=2339,
   methods=[
   _descriptor.MethodDescriptor(
     name='FetchDataService',
@@ -882,8 +882,8 @@ _PREPAREDATA = _descriptor.ServiceDescriptor(
   index=1,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=2340,
-  serialized_end=2452,
+  serialized_start=2341,
+  serialized_end=2453,
   methods=[
   _descriptor.MethodDescriptor(
     name='PrepareEstimateDataService',
@@ -908,8 +908,8 @@ _POWERESTIMATE = _descriptor.ServiceDescriptor(
   index=2,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=2454,
-  serialized_end=2569,
+  serialized_start=2455,
+  serialized_end=2570,
   methods=[
   _descriptor.MethodDescriptor(
     name='EstimateService',
@@ -934,12 +934,12 @@ _POWERESTIMATIONSERVICEPACKAGE = _descriptor.ServiceDescriptor(
   index=3,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=2572,
-  serialized_end=2829,
+  serialized_start=2573,
+  serialized_end=2832,
   methods=[
   _descriptor.MethodDescriptor(
-    name='EstimateService',
-    full_name='estimate.power.PowerEstimationServicePackage.EstimateService',
+    name='EstimatorService',
+    full_name='estimate.power.PowerEstimationServicePackage.EstimatorService',
     index=0,
     containing_service=None,
     input_type=_SERVICEPACKAGEREQUESTMESSAGE,
@@ -948,8 +948,8 @@ _POWERESTIMATIONSERVICEPACKAGE = _descriptor.ServiceDescriptor(
     create_key=_descriptor._internal_create_key,
   ),
   _descriptor.MethodDescriptor(
-    name='EvaluateService',
-    full_name='estimate.power.PowerEstimationServicePackage.EvaluateService',
+    name='EvaluatorService',
+    full_name='estimate.power.PowerEstimationServicePackage.EvaluatorService',
     index=1,
     containing_service=None,
     input_type=_SERVICEPACKAGEREQUESTMESSAGE,
