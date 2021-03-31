@@ -17,8 +17,8 @@ var (
 	addrFS          = "localhost:50051"
 	addrPS          = "localhost:50052"
 	addrES          = "localhost:50053"
-	timeoutDuration = 5                                                  // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
-	INPUTFILENAME   = "src/python/estimate/CMU_2019_2020_openWater.xlsx" // MEEP Need to pass a path relative to the execution directory
+	timeoutDuration = 5                                       // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
+	INPUTFILENAME   = "TestData/CMU_2019_2020_openWater.xlsx" // MEEP Need to pass a path relative to the execution directory
 	MODELTYPE       = "OPENWATER"
 )
 
