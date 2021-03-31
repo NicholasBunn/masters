@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package prepareData;
+option go_package = "github.com/nicholasbunn/masters/src/prepareDataService/proto";
+
+message PrepareRequestMessage {
+    repeated int64 index_number = 1;
+    repeated float time_and_date = 2;
+    repeated float port_prop_motor_current = 3;
+    repeated float port_prop_motor_power = 4;
+    repeated float port_prop_motor_speed = 5;
+    repeated float port_prop_motor_voltage = 6;
+    repeated float stbd_prop_motor_current = 7;
+    repeated float stbd_prop_motor_power = 8;
+    repeated float stbd_prop_motor_speed = 9;
+    repeated float stbd_prop_motor_voltage = 10;
+    repeated float rudder_order_port = 11;
+    repeated float rudder_order_stbd = 12;
+    repeated float rudder_position_port = 13;
+    repeated float rudder_position_stbd = 14;
+    repeated float propeller_pitch_port = 15;
+    repeated float propeller_pitch_stbd = 16;
+    repeated float shaft_rpm_indication_port = 17;
+    repeated float shaft_rpm_indication_stbd = 18;
+    repeated int64 nav_time = 19;
+    repeated float latitude = 20;
+    repeated float longitude = 21;
+    repeated float sog = 22;
+    repeated float cog = 23;
+    repeated float hdt = 24;
+    repeated int64 wind_direction_relative = 25;
+    repeated float wind_speed = 26;
+    repeated float depth = 27;
+    repeated int64 epoch_time = 28;
+    repeated int64 brash_ice = 29;
+    repeated int64 ramming_count = 30;
+    repeated int64 ice_concentration = 31;
+    repeated int64 ice_thickness = 32;
+    repeated int64 flow_size = 33;
+    repeated int64 beaufort_number = 34;
+    repeated int64 wave_direction = 35;
+    repeated float wave_height_ave = 36;
+    repeated float max_swell_height = 37;
+    repeated float wave_length = 38;
+    repeated float wave_period_ave = 39;
+    repeated float encounter_frequency_ave = 40;
+}
+
+message PrepareResponseMessage {
+    repeated float port_prop_motor_speed = 1;
+    repeated float stbd_prop_motor_speed = 2;
+    repeated float propeller_pitch_port = 3;
+    repeated float propeller_pitch_stbd = 4;
+    repeated float sog = 5;
+    repeated float wind_direction_relative = 6;
+    repeated float wind_speed = 7;
+    repeated float beaufort_number = 8;
+    repeated float wave_direction = 9;
+    repeated float wave_length = 10;
+}
+
+service PrepareData {
+    rpc PrepareEstimateDataService(PrepareRequestMessage) returns (PrepareResponseMessage);
+}
