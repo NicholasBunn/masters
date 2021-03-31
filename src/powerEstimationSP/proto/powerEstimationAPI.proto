@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+option go_package = "powerEstimation";
+
+message ServicePackageRequestMessage {
+    string input_file = 1;
+    ModelTypeEnum model_type = 2;
+}
+
+message EstimateResponseMessage {
+    repeated float power_estimate = 1;
+}
+
+message EvaluateResponseMessage {
+    repeated float power_estimate = 1;
+    repeated float power_actual = 2;
+    repeated float speed_over_ground = 3;
+}
+
+service PowerEstimationServicePackage {
+    rpc PowerEstimatorService(ServicePackageRequestMessage) returns (EstimateResponseMessage);
+    rpc PowerEvaluatorService(ServicePackageRequestMessage) returns (EvaluateResponseMessage);
+}
+
+enum ModelTypeEnum {
+    UNKNOWN = 0;
+    OPENWATER = 1;
+    ICE = 2;
+}

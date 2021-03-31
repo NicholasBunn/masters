@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package estimate;
+option go_package = "github.com/nicholasbunn/masters/src/fetchDataService/proto";
+
+message EstimateRequestMessage {
+    repeated float port_prop_motor_speed = 1;
+    repeated float stbd_prop_motor_speed = 2;
+    repeated float propeller_pitch_port = 3;
+    repeated float propeller_pitch_stbd = 4;
+    repeated float sog = 5;
+    repeated float wind_direction_relative = 6;
+    repeated float wind_speed = 7;
+    repeated float beaufort_number = 8;
+    repeated float wave_direction = 9;
+    repeated float wave_length = 10;
+    repeated float motor_power_port = 11;
+    repeated float motor_power_stbd = 12;
+    repeated float original_sog = 13;
+    ModelTypeEnum model_type = 14;
+}
+
+message EstimateResponseMessage {
+    repeated float power_estimate = 1;
+    repeated float power_actual = 2;
+    repeated float speed_over_ground = 3;
+}
+
+
+service EstimatePower {
+    rpc EstimatePowerService(EstimateRequestMessage) returns (EstimateResponseMessage); // Change this to stream response
+}
+
+enum ModelTypeEnum {
+    UNKNOWN = 0;
+    OPENWATER = 1;
+    ICE = 2;
+}
