@@ -2,6 +2,7 @@
 import grpc
 import proto.estimateAPI_pb2 as power_estimation_pb2
 import proto.estimateAPI_pb2_grpc as power_estimation_pb2_grpc
+import interceptors.estimateServiceInterceptor as estimateInterceptor
 import logging
 import pandas as pd
 # import numpy as np
@@ -82,7 +83,11 @@ class EstimatePowerServicer(power_estimation_pb2_grpc.EstimatePowerServicer):
         return myResponseMessage
 
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    activeInterceptors = [estimateInterceptor.MetricInterceptor()]
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=10),
+        interceptors = activeInterceptors
+        )
     power_estimation_pb2_grpc.add_EstimatePowerServicer_to_server(EstimatePowerServicer(), server)
     server.add_insecure_port('[::]:50053')
     server.start()

@@ -1,6 +1,7 @@
 import grpc
 import proto.prepareDataAPI_pb2 as power_estimation_pb2
 import proto.prepareDataAPI_pb2_grpc as power_estimation_pb2_grpc
+import interceptors.prepareServiceInterceptor as prepareInterceptor
 import logging
 import numpy as np
 import pandas as pd
@@ -95,7 +96,11 @@ class PrepareDataServicer(power_estimation_pb2_grpc.PrepareDataServicer):
         return processedResponse
 
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    activeInterceptors = [prepareInterceptor.MetricInterceptor()]
+    server = grpc.server(
+		futures.ThreadPoolExecutor(max_workers=10),
+		interceptors = activeInterceptors
+		)
     power_estimation_pb2_grpc.add_PrepareDataServicer_to_server(PrepareDataServicer(), server)
     server.add_insecure_port('[::]:50052')
     server.start()

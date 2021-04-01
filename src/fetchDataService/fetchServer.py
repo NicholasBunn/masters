@@ -2,6 +2,7 @@ import sys
 import grpc
 import proto.fetchDataAPI_pb2 as fetch_data_api_pb2
 import proto.fetchDataAPI_pb2_grpc as fetch_data_api_pb2_grpc
+import interceptors.fetchDataServiceInterceptor as fetchDataInterceptor
 import logging
 import pandas as pd
 from concurrent import futures
@@ -19,6 +20,7 @@ def importData(excelFileName):
     return dataSet # NOTE: "dataSet" is a dataFrame
 
 class FetchDataServicer(fetch_data_api_pb2_grpc.FetchDataServicer):
+    
     def FetchDataService(self, request, context):
         print("FetchDataService starting")
         thisResponse = fetch_data_api_pb2.FetchDataResponseMessage()
@@ -70,7 +72,11 @@ class FetchDataServicer(fetch_data_api_pb2_grpc.FetchDataServicer):
         return thisResponse
 
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    activeInterceptors = [fetchDataInterceptor.MetricInterceptor()]
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=10),
+        interceptors = activeInterceptors
+    )
     fetch_data_api_pb2_grpc.add_FetchDataServicer_to_server(FetchDataServicer(), server)
     server.add_insecure_port('[::]:50051')
     server.start()

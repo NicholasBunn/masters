@@ -8,10 +8,14 @@ import (
 	"os/exec"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+
 	estimateServicePB "github.com/nicholasbunn/masters/src/estimateService/proto"
 	fetchDataServicePB "github.com/nicholasbunn/masters/src/fetchDataService/proto"
 	prepareDataServicePB "github.com/nicholasbunn/masters/src/prepareDataService/proto"
-	"google.golang.org/grpc"
+
+	"github.com/nicholasbunn/masters/src/powerEstimationSP/interceptors"
 )
 
 var (
@@ -45,11 +49,14 @@ func main() {
 	/* Create connection to the Python server. Here you need to use the WithInsecure option because
 	the Python server doesn't support secure connections. */
 
-	connFS := CreatePythonServerConnection(addrFS, timeoutDuration)
+	callCounterFS := interceptors.OutboundCallCounter{}
+	connFS := CreatePythonServerConnection(addrFS, timeoutDuration, callCounterFS.ClientCallCounter)
 
-	connPS := CreatePythonServerConnection(addrPS, timeoutDuration)
+	callCounterPS := interceptors.OutboundCallCounter{}
+	connPS := CreatePythonServerConnection(addrPS, timeoutDuration, callCounterPS.ClientCallCounter)
 
-	connES := CreatePythonServerConnection(addrES, timeoutDuration)
+	callCounterES := interceptors.OutboundCallCounter{}
+	connES := CreatePythonServerConnection(addrES, timeoutDuration, callCounterES.ClientCallCounter)
 
 	/* Create the client and pass the connection made above to it. After the client has been
 	created, we create the gRPC request */
@@ -63,14 +70,18 @@ func main() {
 	}
 	fmt.Println("Succesfully created a FetchDataRequestMessage")
 
+	// Create header to read the metadat that the response carries
+	var headerFS metadata.MD // MEEP: Header has no information in it yet, this is filled by the server
+
 	// Make the gRPC service call
-	fetchDataContext, _ := context.WithTimeout(context.Background(), 5*time.Second)            // MEEP could still use the cancelFunc, come back to this
-	responseMessageFS, errFS := clientFS.FetchDataService(fetchDataContext, &requestMessageFS) // The responseMessageFS is a RawDataMessage
+	fetchDataContext, _ := context.WithTimeout(context.Background(), 5*time.Second)                                    // MEEP could still use the cancelFunc, come back to this
+	responseMessageFS, errFS := clientFS.FetchDataService(fetchDataContext, &requestMessageFS, grpc.Header(&headerFS)) // The responseMessageFS is a RawDataMessage
 	if errFS != nil {
 		fmt.Println("Failed to make FetchData service call: ")
 		log.Fatal(errFS)
 	}
 	fmt.Println("Succesfully made service call to Python fetchDataServer.")
+	fmt.Println("The fetch service client has performed %s calls.", callCounterFS)
 	connFS.Close()
 
 	requestMessagePS := prepareDataServicePB.PrepareRequestMessage{
@@ -166,7 +177,7 @@ func main() {
 	}
 	fmt.Println("Succesfully made service call to Python estimateServer")
 	connPS.Close()
-	fmt.Println(responseMessageES.PowerEstimate) // MEEP remove once you've done something with responseMEssageFS
+	fmt.Println(responseMessageES.PowerEstimate[1]) // MEEP remove once you've done something with responseMEssageFS
 }
 
 func SpinUpService(interpreter string, directory string, fileName string) {
@@ -180,8 +191,9 @@ func SpinUpService(interpreter string, directory string, fileName string) {
 	}
 }
 
-func CreatePythonServerConnection(port string, timeout int) *grpc.ClientConn {
-	conn, err := grpc.Dial(port, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second))
+// MEEP: this should just accept a list of the services and iterate through it!
+func CreatePythonServerConnection(port string, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {
+	conn, err := grpc.Dial(port, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
 	if err != nil {
 		fmt.Println("Failed to create connection to Python server on port: " + port)
 		log.Fatal(err)
