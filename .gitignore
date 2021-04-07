@@ -1,0 +1,6 @@
+# Default ignored files
+toPlot.xlsx
+TestData
+.vscode
+.idea
+src/github.com

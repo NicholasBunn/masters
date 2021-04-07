@@ -4,6 +4,7 @@ import prometheus_client as prometheus
 class MetricInterceptor(ServerInterceptor):
     def __init__(self):
         print("Initialising metric interceptor")
+        # self get callcount?
     def intercept(self, method, request, context, method_name):
         print("Interceptor method starting")
         registry = prometheus.CollectorRegistry()

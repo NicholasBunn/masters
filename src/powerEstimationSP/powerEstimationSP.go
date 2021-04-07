@@ -1,6 +1,5 @@
 package main
 
-// Just putting this here to test a branch publish
 import (
 	"context"
 	"fmt"
@@ -23,7 +22,7 @@ var (
 	addrPS          = "localhost:50052"
 	addrES          = "localhost:50053"
 	timeoutDuration = 5                                       // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
-	INPUTFILENAME   = "TestData/CMU_2019_2020_openWater.xlsx" // MEEP Need to pass a path relative to the execution directory
+	INPUTfilename   = "TestData/CMU_2019_2020_openWater.xlsx" // MEEP Need to pass a path relative to the execution directory
 	MODELTYPE       = "OPENWATER"
 )
 
@@ -39,11 +38,11 @@ func main() {
 	fmt.Println("Started GoLang Aggregator")
 
 	// Spin up low-level services
-	SpinUpService("python3", "./src/fetchDataService/", "fetchServer.py")
+	interpretersSlice := []string{"python3", "python3", "python3"}
+	directoriesSlice := []string{"./src/fetchDataService/", "./src/prepareDataService/", "./src/estimateService/"}
+	filenamesSlice := []string{"fetchServer.py", "prepareServer.py", "estimateServer.py"}
 
-	SpinUpService("python3", "./src/prepareDataService/", "prepareServer.py")
-
-	SpinUpService("python3", "./src/estimateService/", "estimateServer.py")
+	_ = SpinUpServices(interpretersSlice, directoriesSlice, filenamesSlice)
 
 	// First invoke fetchserver
 	/* Create connection to the Python server. Here you need to use the WithInsecure option because
@@ -66,7 +65,7 @@ func main() {
 	fmt.Println("Succesfully created the GoLang clients")
 
 	requestMessageFS := fetchDataServicePB.FetchDataRequestMessage{
-		InputFile: INPUTFILENAME,
+		InputFile: INPUTfilename,
 	}
 	fmt.Println("Succesfully created a FetchDataRequestMessage")
 
@@ -81,7 +80,7 @@ func main() {
 		log.Fatal(errFS)
 	}
 	fmt.Println("Succesfully made service call to Python fetchDataServer.")
-	fmt.Println("The fetch service client has performed %s calls.", callCounterFS)
+	fmt.Println("The fetch service client has performed ", callCounterFS, " calls.")
 	connFS.Close()
 
 	requestMessagePS := prepareDataServicePB.PrepareRequestMessage{
@@ -180,18 +179,35 @@ func main() {
 	fmt.Println(responseMessageES.PowerEstimate[1]) // MEEP remove once you've done something with responseMEssageFS
 }
 
-func SpinUpService(interpreter string, directory string, fileName string) {
-	fmt.Println("Invoking " + interpreter + " service: " + fileName)
-	fileLocation := directory + fileName
-	cmd := exec.Command(interpreter, fileLocation)
-	err := cmd.Start()
-	if err != nil {
-		fmt.Println("Failed to invoke %s: ", fileName)
-		log.Fatal(err)
+func SpinUpServices(interpreter []string, directories []string, filenames []string) bool {
+	// Check that the 'directories' and 'filenames' are of the same length before iterating through them
+	if len(directories) != len(filenames) {
+		fmt.Println("The 'directories' and 'filenames' slices passed into the 'SpinUpSerivces' function are not of equal lengths")
+		log.Fatal()
+		return false // These are here for error handling when I get around to it, won't execute at the moment
+	} else {
+		// Reusable variables
+		fileLocation := ""
+		var cmd *exec.Cmd
+		var err error
+
+		// Iterate through the required services and start them up
+		for i := range directories {
+			fmt.Println("Invoking " + interpreter[i] + " service: " + filenames[i])
+			fileLocation = directories[i] + filenames[i]
+			cmd = exec.Command(interpreter[i], fileLocation)
+			err = cmd.Start()
+			if err != nil {
+				fmt.Println("Failed to invoke {}", filenames[i])
+				log.Fatal(err)
+				return false
+			}
+		}
+
+		return true
 	}
 }
 
-// MEEP: this should just accept a list of the services and iterate through it!
 func CreatePythonServerConnection(port string, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {
 	conn, err := grpc.Dial(port, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
 	if err != nil {
