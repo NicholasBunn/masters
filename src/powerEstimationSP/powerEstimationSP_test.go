@@ -40,7 +40,7 @@ func TestSpinUpService(t *testing.T) {
 	for _, test := range tests {
 		fmt.Println("Starting spin up service test with inputs: ", test.inputCompiler, ", ", test.inputDirectory, ", ", test.inputFilename, ". Service is starting on port ", test.ports)
 		result := SpinUpServices(test.inputCompiler, test.inputDirectory, test.inputFilename)
-		time.Sleep(1 * time.Second) // Bad practice, but I need to wait for the server to go online before checking for it. Maybe add a check in the SpinUpServiceFunction instead
+		time.Sleep(800 * time.Millisecond) // Bad practice, but I need to wait for the server to go online before checking for it. Maybe add a check in the SpinUpServiceFunction instead
 
 		if !result {
 			t.Error("Spin up service function failed to execute.")
