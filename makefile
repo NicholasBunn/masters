@@ -21,3 +21,6 @@ clean:
 
 run:
 	go run src/powerEstimationSP/powerEstimationSP.go
+
+test:
+	go test ./...
