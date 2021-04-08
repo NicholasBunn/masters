@@ -73,7 +73,7 @@ func main() {
 	var headerFS metadata.MD // MEEP: Header has no information in it yet, this is filled by the server
 
 	// Make the gRPC service call
-	fetchDataContext, _ := context.WithTimeout(context.Background(), 5*time.Second)                                    // MEEP could still use the cancelFunc, come back to this
+	fetchDataContext, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	responseMessageFS, errFS := clientFS.FetchDataService(fetchDataContext, &requestMessageFS, grpc.Header(&headerFS)) // The responseMessageFS is a RawDataMessage
 	if errFS != nil {
 		fmt.Println("Failed to make FetchData service call: ")
