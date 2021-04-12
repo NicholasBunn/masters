@@ -1,6 +1,7 @@
 from grpc_interceptor import ServerInterceptor
 import prometheus_client as prometheus
 import requests
+import time
 
 class MetricInterceptor(ServerInterceptor):
     address = "http://localhost:9091"
@@ -21,6 +22,13 @@ class MetricInterceptor(ServerInterceptor):
     def intercept(self, method, request, context, method_name):
         print("Interceptor method starting")
 
+        metadata = dict(context.invocation_metadata())
+        print(metadata['call-time'])
+
+        print(time.time_ns() - int(metadata['call-time']))
+
+        context.set_trailing_metadata([('end-time', str(time.time_ns() - int(metadata['call-time'])))]) # This isn't setting the time at the end of the service call, still need to figure out execution timing
+
         c = prometheus.Counter("calls", "Number of times this API has been called", registry=self.registry)
         c.inc(int(self.count) + 1)
 
@@ -30,3 +38,4 @@ class MetricInterceptor(ServerInterceptor):
         prometheus.push_to_gateway(self.address, job=self.job, registry=self.registry)
         print("Interceptor method complete")
         return method(request, context)
+    

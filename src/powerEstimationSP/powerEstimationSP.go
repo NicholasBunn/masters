@@ -18,12 +18,13 @@ import (
 )
 
 var (
-	addrFS          = "localhost:50051"
-	addrPS          = "localhost:50052"
-	addrES          = "localhost:50053"
-	timeoutDuration = 5                                       // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
-	INPUTfilename   = "TestData/CMU_2019_2020_openWater.xlsx" // MEEP Need to pass a path relative to the execution directory
-	MODELTYPE       = "OPENWATER"
+	addrFS              = "localhost:50051"
+	addrPS              = "localhost:50052"
+	addrES              = "localhost:50053"
+	timeoutDuration     = 5 // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
+	callTimeoutDuration = 15 * time.Second
+	INPUTfilename       = "TestData/CMU_2019_2020_openWater.xlsx" // MEEP Need to pass a path relative to the execution directory
+	MODELTYPE           = "OPENWATER"
 )
 
 // MEEP Implement switch case to deal with user input for model type
@@ -49,13 +50,13 @@ func main() {
 	the Python server doesn't support secure connections. */
 
 	callCounterFS := interceptors.OutboundCallCounter{}
-	connFS := CreatePythonServerConnection(addrFS, timeoutDuration, callCounterFS.ClientCallCounter)
+	connFS := CreatePythonServerConnection(addrFS, timeoutDuration, callCounterFS.ClientMetrics)
 
 	callCounterPS := interceptors.OutboundCallCounter{}
-	connPS := CreatePythonServerConnection(addrPS, timeoutDuration, callCounterPS.ClientCallCounter)
+	connPS := CreatePythonServerConnection(addrPS, timeoutDuration, callCounterPS.ClientMetrics)
 
 	callCounterES := interceptors.OutboundCallCounter{}
-	connES := CreatePythonServerConnection(addrES, timeoutDuration, callCounterES.ClientCallCounter)
+	connES := CreatePythonServerConnection(addrES, timeoutDuration, callCounterES.ClientMetrics)
 
 	/* Create the client and pass the connection made above to it. After the client has been
 	created, we create the gRPC request */
@@ -69,17 +70,18 @@ func main() {
 	}
 	fmt.Println("Succesfully created a FetchDataRequestMessage")
 
-	// Create header to read the metadat that the response carries
-	var headerFS metadata.MD // MEEP: Header has no information in it yet, this is filled by the server
+	// Create header to read the metadata that the response carries
+	var headerFS, trailerFS metadata.MD // MEEP: Header has no information in it yet, this is filled by the server
 
 	// Make the gRPC service call
-	fetchDataContext, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	responseMessageFS, errFS := clientFS.FetchDataService(fetchDataContext, &requestMessageFS, grpc.Header(&headerFS)) // The responseMessageFS is a RawDataMessage
+	fetchDataContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration)
+	responseMessageFS, errFS := clientFS.FetchDataService(fetchDataContext, &requestMessageFS, grpc.Header(&headerFS), grpc.Trailer(&trailerFS)) // The responseMessageFS is a RawDataMessage
 	if errFS != nil {
 		fmt.Println("Failed to make FetchData service call: ")
 		log.Fatal(errFS)
 	}
 	fmt.Println("Succesfully made service call to Python fetchDataServer.")
+	fmt.Println("Metadata: ", trailerFS.Get("end-time"))
 	fmt.Println("The fetch service client has performed ", callCounterFS, " calls.")
 	connFS.Close()
 
@@ -126,7 +128,7 @@ func main() {
 		EncounterFrequencyAve:  responseMessageFS.EncounterFrequencyAve,
 	}
 
-	prepareDataContext, _ := context.WithTimeout(context.Background(), 5*time.Second) // MEEP could still use the cancelFunc, come back to this
+	prepareDataContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration) // MEEP could still use the cancelFunc, come back to this
 	// Invoke prepareserver and pass fetchserver outputs as arguements
 
 	responseMessagePS, errPS := clientPS.PrepareEstimateDataService(prepareDataContext, &requestMessagePS)
@@ -168,7 +170,7 @@ func main() {
 	fmt.Println("Succesfully created an EstimateRequestMessage")
 
 	// Invoke estimateserver and pass prepareserver outputs as arguements
-	estimateContext, _ := context.WithTimeout(context.Background(), 5*time.Second) // MEEP could still use the cancelFunc, come back to this
+	estimateContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration) // MEEP could still use the cancelFunc, come back to this
 	responseMessageES, errES := clientES.EstimatePowerService(estimateContext, &requestMessageES)
 	if errES != nil {
 		fmt.Println("Failed to make Estimate service call: ")
