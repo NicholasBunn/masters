@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option go_package = "desktopGateway";
+
+message EstimationRequest {
+    string bla = 1;
+}
+
+message CostEstimationRespose {
+    string blabla = 1;
+}
+
+message PowerEstimationResponse {
+    string blablabla = 1;
+}
+
+service PowerEstimationServicePackage {
+    rpc CostEstimationSP(EstimationRequest) returns (stream CostEstimationRespose);
+    rpc powerEstimationSP(EstimationRequest) returns (stream PowerEstimationResponse);
+}
