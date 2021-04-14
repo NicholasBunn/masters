@@ -39,11 +39,11 @@ func main() {
 	fmt.Println("Started GoLang Aggregator")
 
 	// Spin up low-level services
-	interpretersSlice := []string{"python3", "python3", "python3"}
-	directoriesSlice := []string{"./src/fetchDataService/", "./src/prepareDataService/", "./src/estimateService/"}
-	filenamesSlice := []string{"fetchServer.py", "prepareServer.py", "estimateServer.py"}
+	// interpretersSlice := []string{"python3", "python3", "python3"}
+	// directoriesSlice := []string{"./src/fetchDataService/", "./src/prepareDataService/", "./src/estimateService/"}
+	// filenamesSlice := []string{"fetchServer.py", "prepareServer.py", "estimateServer.py"}
 
-	_ = SpinUpServices(interpretersSlice, directoriesSlice, filenamesSlice)
+	// _ = SpinUpServices(interpretersSlice, directoriesSlice, filenamesSlice)
 
 	// First invoke fetchserver
 	/* Create connection to the Python server. Here you need to use the WithInsecure option because

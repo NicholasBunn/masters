@@ -9,14 +9,10 @@ import logging
 logger = logging.getLogger(__file__.rsplit("/")[-3].rsplit(".")[0])
 logger.setLevel(logging.DEBUG)
 
-def pushToPrometheus(count, executionTime, address, job, registry):
-    c = prometheus.Counter("calls", "Number of times this API has been called", registry=registry)
-    c.inc(int(count) + 1)
-
-    g = prometheus.Gauge('last_call_time', 'Last time this API was called', registry=registry)
+def pushToPrometheus(c, g, h, executionTime, address, job, registry):
+    # c = prometheus.Counter("calls", "Number of times this API has been called", registry=registry)
+    c.inc()
     g.set_to_current_time()
-
-    h = prometheus.Histogram('request_latency', 'Ammount of time for request to be processed', registry=registry)
     h.observe(executionTime)
             
     prometheus.push_to_gateway(address, job=job, registry=registry)
@@ -46,7 +42,7 @@ def sendMetrics(func):
             raise
         finally:
             responseTime = time.time() - startTime
-            pushToPrometheus(args[0].count, responseTime, args[0].address, args[0].job, args[0].registry)
+            pushToPrometheus(args[0].c, args[0].g, args[0].h, responseTime, args[0].address, args[0].job, args[0].registry)
         return result
     return wrapper
 
@@ -58,11 +54,10 @@ class MetricInterceptor(ServerInterceptor):
     def __init__(self):
         logger.debug("Initialising metric interceptor")
         self.registry = prometheus.CollectorRegistry()
-        response = requests.get("http://localhost:9090" + "/api/v1/query", params={'query': 'calls_total{job="' + self.job + '"}'}, timeout=1) 
-        result = response.json()['data']['result']
-        if result:
-            self.count = result[0]["value"][1]
-        
+        self.c = prometheus.Counter("calls", "Number of times this API has been called", registry=self.registry)
+        self.g = prometheus.Gauge('last_call_time', 'Last time this API was called', registry=self.registry)
+        self.h = prometheus.Histogram('request_latency', 'Ammount of time for request to be processed', registry=self.registry)
+
     @sendMetrics
     def intercept(self, method, request, context, methodName):
         logger.info("Starting interceptor method")

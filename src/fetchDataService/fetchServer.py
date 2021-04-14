@@ -76,7 +76,7 @@ def serve():
     server.add_insecure_port('[::]:50051')
     server.start()
     logger.info('Server started on port 50051')
-    server.wait_for_termination(timeout=20)
+    server.wait_for_termination()
 
 if __name__ == '__main__':
     # Logger setup

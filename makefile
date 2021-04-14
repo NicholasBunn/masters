@@ -20,6 +20,9 @@ clean:
 	rm pb/*.go
 
 run:
+	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/masters/src/fetchDataService/fetchServer.py
+	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/masters/src/prepareDataService/prepareServer.py
+	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/masters/src/estimateService/estimateServer.py
 	go run src/powerEstimationSP/powerEstimationSP.go
 
 test:
