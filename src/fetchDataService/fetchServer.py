@@ -13,20 +13,15 @@ def importData(excelFileName):
     # Import ship and weather data for estimation
     dataSet = pd.read_excel(excelFileName, engine = "openpyxl") # This is a dataFrame
 
-    # I'm not entirely sure if/why these two lines are requried, but Gerhard had them so I'll leave them alone
-    # dataSet = dataSet.reset_index()
-    # dataSet = dataSet.reset_index()
-
     return dataSet # NOTE: "dataSet" is a dataFrame
 
 class FetchDataServicer(fetch_data_api_pb2_grpc.FetchDataServicer):
-    
+        
     def FetchDataService(self, request, context):
-        print("FetchDataService starting")
+        logger.info("Starting FetchDataService")
         thisResponse = fetch_data_api_pb2.FetchDataResponseMessage()
-        print("Response created, importing data.")
         rawDataSet = importData(request.input_file) # NOTE: This is quite a slow function, it could be sped up if csv files were read instead of Excel files
-        print("Data imported, serialising data")
+        logger.debug("Succesfully imported data")
         thisResponse.index_number.extend(rawDataSet['index number'])
         thisResponse.time_and_date.extend(rawDataSet['time and date number'])
         thisResponse.port_prop_motor_current.extend(rawDataSet['PortPropMotorCurrent'])
@@ -67,7 +62,7 @@ class FetchDataServicer(fetch_data_api_pb2_grpc.FetchDataServicer):
         thisResponse.wave_length.extend(rawDataSet['Wave length'])
         thisResponse.wave_period_ave.extend(rawDataSet['Wave period ave'])
         thisResponse.encounter_frequency_ave.extend(rawDataSet['Encounter frequency ave'])
-        print("Data has been serialised successfully")
+        logger.debug("Successfully serialised data")
 
         return thisResponse
 
@@ -80,9 +75,19 @@ def serve():
     fetch_data_api_pb2_grpc.add_FetchDataServicer_to_server(FetchDataServicer(), server)
     server.add_insecure_port('[::]:50051')
     server.start()
-    print('Server started on port 50051')
+    logger.info('Server started on port 50051')
     server.wait_for_termination(timeout=20)
 
 if __name__ == '__main__':
-    logging.basicConfig()
+    # Logger setup
+    logger = logging.getLogger(__file__.rsplit("/")[-2].rsplit(".")[0])
+    logger.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(module)s:%(funcName)s:%(message)s')
+
+    fileHandler = logging.FileHandler("program logs/"+__file__.rsplit("/")[-2].rsplit(".")[0]+".log")
+    fileHandler.setFormatter(formatter)
+
+    logger.addHandler(fileHandler)
+
     serve()

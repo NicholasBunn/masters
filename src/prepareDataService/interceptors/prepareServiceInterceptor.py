@@ -5,6 +5,10 @@ import requests
 import time
 import logging
 
+# Logger setup
+logger = logging.getLogger(__file__.rsplit("/")[-3].rsplit(".")[0])
+logger.setLevel(logging.DEBUG)
+
 def pushToPrometheus(count, executionTime, address, job, registry):
     c = prometheus.Counter("calls", "Number of times this API has been called", registry=registry)
     c.inc(int(count) + 1)
@@ -16,35 +20,32 @@ def pushToPrometheus(count, executionTime, address, job, registry):
     h.observe(executionTime)
             
     prometheus.push_to_gateway(address, job=job, registry=registry)
-    print("Interceptor method complete")
-
+    logger.info("Succesfully pushed metrics")
 
 def sendMetrics(func):
     from functools import wraps
 
     @wraps(func)
     def wrapper(*args, **kw):
+        logger.debug(" Starting Interceptor decorator")
         if isinstance(args[3], grpc._server._Context):
             servicerContext = args[3]
             # This gives us <service>/<method name>
             serviceMethod = servicerContext._rpc_event.call_details.method
             serviceName, methodName = str(serviceMethod).rsplit('/')[1::]
-            print("(Decorator) Service name: ", serviceName)
-            print("(Decorator) Method name: ", methodName)
         else:
-            logging.warning('(Decorator) Cannot derive the service name and method')
+            logger.warning('Cannot derive the service name and method')
         try:
             startTime = time.time()
-            print("(Decorator) Start time: ", startTime)
             result = func(*args, **kw, )
             resultStatus = "Success"
-            print("(Decorator) ", resultStatus)
+            logger.debug("Function call: {}".format(resultStatus))
         except Exception:
             resultStatus = "Error"
+            logger.warning("Function call: {}".format(resultStatus))
             raise
         finally:
             responseTime = time.time() - startTime
-            print("(Decorator) Response time: ", responseTime)
             pushToPrometheus(args[0].count, responseTime, args[0].address, args[0].job, args[0].registry)
         return result
     return wrapper
@@ -55,18 +56,15 @@ class MetricInterceptor(ServerInterceptor):
     count = 0
 
     def __init__(self):
-        print("Initialising metric interceptor")
+        logger.debug("Initialising metric interceptor")
         self.registry = prometheus.CollectorRegistry()
         response = requests.get("http://localhost:9090" + "/api/v1/query", params={'query': 'calls_total{job="' + self.job + '"}'}, timeout=1) 
         result = response.json()['data']['result']
         if result:
             self.count = result[0]["value"][1]
-        print(self.count)
         
     @sendMetrics
     def intercept(self, method, request, context, methodName):
-        print("Interceptor method started")
+        logger.info("Starting interceptor method")
 
-        return method(request, context)
-        # return method(request, context)
-    
+        return method(request, context)    
