@@ -27,7 +27,7 @@ def sendMetrics(func):
             servicerContext = args[3]
             # This gives us <service>/<method name>
             serviceMethod = servicerContext._rpc_event.call_details.method
-            serviceName, methodName = str(serviceMethod).rsplit('/')[1::]
+            serviceName, job = str(serviceMethod).rsplit('/')[1::]
         else:
             logger.warning('Cannot derive the service name and method')
         try:
@@ -41,13 +41,12 @@ def sendMetrics(func):
             raise
         finally:
             responseTime = time.time() - startTime
-            pushToPrometheus(args[0].c, args[0].g, args[0].h, responseTime, args[0].address, args[0].job, args[0].registry)
+            pushToPrometheus(args[0].c, args[0].g, args[0].h, responseTime, args[0].address, job, args[0].registry)
         return result
     return wrapper
 
 class MetricInterceptor(ServerInterceptor):
     address = "http://localhost:9091" # Rodo: pass/pull this from the message metadata
-    job = "fetchDataService" # ToDo: pass/pull this from the message metadata
 
     def __init__(self):
         logger.debug("Initialising metric interceptor")

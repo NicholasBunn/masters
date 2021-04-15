@@ -10,7 +10,6 @@ logger = logging.getLogger(__file__.rsplit("/")[-3].rsplit(".")[0])
 logger.setLevel(logging.DEBUG)
 
 def pushToPrometheus(c, g, h, executionTime, address, job, registry):
-    # c = prometheus.Counter("calls", "Number of times this API has been called", registry=registry)
     c.inc()
     g.set_to_current_time()
     h.observe(executionTime)
@@ -28,7 +27,7 @@ def sendMetrics(func):
             servicerContext = args[3]
             # This gives us <service>/<method name>
             serviceMethod = servicerContext._rpc_event.call_details.method
-            serviceName, methodName = str(serviceMethod).rsplit('/')[1::]
+            serviceName, job = str(serviceMethod).rsplit('/')[1::]
         else:
             logger.warning('Cannot derive the service name and method')
         try:
@@ -42,14 +41,12 @@ def sendMetrics(func):
             raise
         finally:
             responseTime = time.time() - startTime
-            pushToPrometheus(args[0].c, args[0].g, args[0].h, responseTime, args[0].address, args[0].job, args[0].registry)
+            pushToPrometheus(args[0].c, args[0].g, args[0].h, responseTime, args[0].address, job, args[0].registry)
         return result
     return wrapper
 
 class MetricInterceptor(ServerInterceptor):
     address = "http://localhost:9091" # Rodo: pass/pull this from the message metadata
-    job = "prepareDataService" # ToDo: pass/pull this from the message metadata
-    count = 0
 
     def __init__(self):
         logger.debug("Initialising metric interceptor")
