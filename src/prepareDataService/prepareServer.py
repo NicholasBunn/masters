@@ -10,7 +10,6 @@ from concurrent import futures
 
 def processData(dataSet):
 	# This function takes a (structured) dataFrame as an input, normalises and orders the data into the correct shape, as is required by the machine learning library, before returning a numpy array containing the data
-
 	dataSet.shape # Shape the test data before accessing its parameters
 
 	# Normalise the data
@@ -88,7 +87,6 @@ class PrepareDataServicer(power_estimation_pb2_grpc.PrepareDataServicer):
 					'Beaufort number': request.beaufort_number, 
 					'Wave direction':  request.wave_direction, 
 					'Wave length': request.wave_length}
-
 		outputData = processData(pd.DataFrame(inputData))
 		logger.debug("Successfully processed data")
 		processedResponse.port_prop_motor_speed.extend(outputData[:,0])

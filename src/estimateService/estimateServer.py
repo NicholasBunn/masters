@@ -62,7 +62,12 @@ class EstimatePowerServicer(power_estimation_pb2_grpc.EstimatePowerServicer):
 		activeModel = loadModel(request.model_type)
 		logger.debug("Successfully loaded model")
 		# ________RUN THE LOADED MODEL_______
-		processedData = {'PortPropMotorSpeed': request.port_prop_motor_speed, 'StbdPropMotorSpeed': request.stbd_prop_motor_speed, 'PropellerPitchPort': request.propeller_pitch_port, 'PropellerPitchStbd': request.propeller_pitch_stbd, 'SOG': request.sog, 'WindDirRel': request.wind_direction_relative, 'WindSpeed': request.wind_speed, 'Beaufort number': request.beaufort_number, 'Wave direction': request.wave_direction, 'Wave length': request.wave_length}
+		# logger.debug("PPMS {}, SPMS {}, PPP {}, PPS {}, SOG {}, WDR {}, WS {}, BN {}, WD {}, WL {}".format(request.port_prop_motor_speed, request.stbd_prop_motor_speed, request.propeller_pitch_port, request.propeller_pitch_stbd, request.sog, request.wind_direction_relative, request.wind_speed, request.beaufort_number, request.wave_direction, request.wave_length))
+		processedData = {'PortPropMotorSpeed': request.port_prop_motor_speed, 'StbdPropMotorSpeed': request.stbd_prop_motor_speed, 
+						'PropellerPitchPort': request.propeller_pitch_port, 'PropellerPitchStbd': request.propeller_pitch_stbd, 
+						'SOG': request.sog, 'WindDirRel': request.wind_direction_relative, 'WindSpeed': request.wind_speed, 
+						'Beaufort number': request.beaufort_number, 'Wave direction': request.wave_direction, 
+						'Wave length': request.wave_length}
 		estimatedPower = runModel(activeModel, pd.DataFrame(processedData))
 		logger.debug("Succesfully ran the model")
 		# ________EVALUATE THE LOADED MODEL_______

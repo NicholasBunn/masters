@@ -4,15 +4,19 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os/exec"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	estimateServicePB "github.com/nicholasbunn/masters/src/estimateService/proto"
 	fetchDataServicePB "github.com/nicholasbunn/masters/src/fetchDataService/proto"
 	prepareDataServicePB "github.com/nicholasbunn/masters/src/prepareDataService/proto"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/nicholasbunn/masters/src/powerEstimationSP/interceptors"
 )
@@ -35,6 +39,10 @@ var (
 // MEEP Set timeout values for gRPC Dial
 // MEEP Try to get the information to be streamed
 
+func init() {
+
+}
+
 func main() {
 	fmt.Println("Started GoLang Aggregator")
 
@@ -49,13 +57,30 @@ func main() {
 	/* Create connection to the Python server. Here you need to use the WithInsecure option because
 	the Python server doesn't support secure connections. */
 
-	callCounterFS := interceptors.OutboundCallCounter{}
+	// Create a metrics registry.
+	reg := prometheus.NewRegistry()
+	// Create some standard client metrics.
+	grpcMetrics := grpc_prometheus.NewClientMetrics()
+	// Register client metrics to registry.
+	reg.MustRegister(grpcMetrics)
+
+	// Create a HTTP server for prometheus.
+	httpServer := &http.Server{Handler: promhttp.HandlerFor(reg, promhttp.HandlerOpts{}), Addr: fmt.Sprintf("0.0.0.0:%d", 9092)}
+
+	// Start your http server for prometheus.
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil {
+			log.Fatal("Unable to start a http server.")
+		}
+	}()
+
+	callCounterFS := interceptors.ClientMetricStruct{}
 	connFS := CreatePythonServerConnection(addrFS, timeoutDuration, callCounterFS.ClientMetrics)
 
-	callCounterPS := interceptors.OutboundCallCounter{}
+	callCounterPS := interceptors.ClientMetricStruct{}
 	connPS := CreatePythonServerConnection(addrPS, timeoutDuration, callCounterPS.ClientMetrics)
 
-	callCounterES := interceptors.OutboundCallCounter{}
+	callCounterES := interceptors.ClientMetricStruct{}
 	connES := CreatePythonServerConnection(addrES, timeoutDuration, callCounterES.ClientMetrics)
 
 	/* Create the client and pass the connection made above to it. After the client has been
@@ -81,8 +106,6 @@ func main() {
 		log.Fatal(errFS)
 	}
 	fmt.Println("Succesfully made service call to Python fetchDataServer.")
-	fmt.Println("Metadata: ", trailerFS.Get("end-time"))
-	fmt.Println("The fetch service client has performed ", callCounterFS, " calls.")
 	connFS.Close()
 
 	requestMessagePS := prepareDataServicePB.PrepareRequestMessage{

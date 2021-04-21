@@ -46,7 +46,7 @@ def sendMetrics(func):
     return wrapper
 
 class MetricInterceptor(ServerInterceptor):
-    address = "http://localhost:9091" # Rodo: pass/pull this from the message metadata
+    address = "http://localhost:9091" # Todo: pass/pull this from the message metadata
 
     def __init__(self):
         logger.debug("Initialising metric interceptor")
