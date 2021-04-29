@@ -1,16 +1,15 @@
 import grpc
 import proto.prepareDataAPI_pb2 as power_estimation_pb2
 import proto.prepareDataAPI_pb2_grpc as power_estimation_pb2_grpc
+import interceptors.prepareServiceInterceptor as prepareInterceptor
 import logging
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from concurrent import futures
 
-
 def processData(dataSet):
-    # This function takes a (structured) dataFrame as an input, normalises and orders the data into the correct shape, as is required by the machine learning library, before returning a numpy array containing the data
-
+	# This function takes a (structured) dataFrame as an input, normalises and orders the data into the correct shape, as is required by the machine learning library, before returning a numpy array containing the data
 	dataSet.shape # Shape the test data before accessing its parameters
 
 	# Normalise the data
@@ -77,31 +76,55 @@ def processData(dataSet):
 	return modelInputs
 
 class PrepareDataServicer(power_estimation_pb2_grpc.PrepareDataServicer):
-    def PrepareEstimateDataService(self, request, context):
-        processedResponse = power_estimation_pb2.PrepareResponseMessage()
-        inputData = {'PortPropMotorSpeed': request.port_prop_motor_speed, 'StbdPropMotorSpeed': request.stbd_prop_motor_speed, 'PropellerPitchPort': request.propeller_pitch_port, 'PropellerPitchStbd': request.propeller_pitch_stbd, 'SOG': request.sog, 'WindDirRel': request.wind_direction_relative, 'WindSpeed': request.wind_speed, 'Beaufort number': request.beaufort_number, 'Wave direction':  request.wave_direction, 'Wave length': request.wave_length}
-        outputData = processData(pd.DataFrame(inputData))
-        processedResponse.port_prop_motor_speed.extend(outputData[:,0])
-        processedResponse.stbd_prop_motor_speed.extend(outputData[:,1])
-        processedResponse.propeller_pitch_port.extend(outputData[:,2])
-        processedResponse.propeller_pitch_stbd.extend(outputData[:,3])
-        processedResponse.sog.extend(outputData[:,4])
-        processedResponse.wind_direction_relative.extend(outputData[:,5])
-        processedResponse.wind_speed.extend(outputData[:,6])
-        processedResponse.beaufort_number.extend(outputData[:, 7])
-        processedResponse.wave_direction.extend(outputData[:, 8])
-        processedResponse.wave_length.extend(outputData[:, 9])
+	def PrepareEstimateDataService(self, request, context):
+		processedResponse = power_estimation_pb2.PrepareResponseMessage()
+		inputData = {'PortPropMotorSpeed': request.port_prop_motor_speed, 
+					'StbdPropMotorSpeed': request.stbd_prop_motor_speed, 
+					'PropellerPitchPort': request.propeller_pitch_port, 
+					'PropellerPitchStbd': request.propeller_pitch_stbd, 
+					'SOG': request.sog, 'WindDirRel': request.wind_direction_relative, 
+					'WindSpeed': request.wind_speed, 
+					'Beaufort number': request.beaufort_number, 
+					'Wave direction':  request.wave_direction, 
+					'Wave length': request.wave_length}
+		outputData = processData(pd.DataFrame(inputData))
+		logger.debug("Successfully processed data")
+		processedResponse.port_prop_motor_speed.extend(outputData[:,0])
+		processedResponse.stbd_prop_motor_speed.extend(outputData[:,1])
+		processedResponse.propeller_pitch_port.extend(outputData[:,2])
+		processedResponse.propeller_pitch_stbd.extend(outputData[:,3])
+		processedResponse.sog.extend(outputData[:,4])
+		processedResponse.wind_direction_relative.extend(outputData[:,5])
+		processedResponse.wind_speed.extend(outputData[:,6])
+		processedResponse.beaufort_number.extend(outputData[:, 7])
+		processedResponse.wave_direction.extend(outputData[:, 8])
+		processedResponse.wave_length.extend(outputData[:, 9])
+		logger.debug("Succesfully serailised data")
 
-        return processedResponse
+		return processedResponse
 
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    power_estimation_pb2_grpc.add_PrepareDataServicer_to_server(PrepareDataServicer(), server)
-    server.add_insecure_port('[::]:50052')
-    server.start()
-    print('Server started on port 50052')
-    server.wait_for_termination(timeout=20)
+	activeInterceptors = [prepareInterceptor.MetricInterceptor()]
+	server = grpc.server(
+		futures.ThreadPoolExecutor(max_workers=10),
+		interceptors = activeInterceptors
+		)
+	power_estimation_pb2_grpc.add_PrepareDataServicer_to_server(PrepareDataServicer(), server)
+	server.add_insecure_port('[::]:50052')
+	server.start()
+	logger.info('Server started on port 50052')
+	server.wait_for_termination()
 
 if __name__ == '__main__':
-    logging.basicConfig()
-    serve()
+	# Logger setup
+	logger = logging.getLogger(__file__.rsplit("/")[-2].rsplit(".")[0])
+	logger.setLevel(logging.DEBUG)
+
+	formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(module)s:%(funcName)s:%(message)s')
+
+	fileHandler = logging.FileHandler("program logs/"+__file__.rsplit("/")[-2].rsplit(".")[0]+".log")
+	fileHandler.setFormatter(formatter)
+
+	logger.addHandler(fileHandler)
+
+	serve()

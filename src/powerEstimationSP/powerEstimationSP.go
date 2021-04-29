@@ -1,26 +1,34 @@
 package main
 
-// Just putting this here to test a branch publish
 import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os/exec"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	estimateServicePB "github.com/nicholasbunn/masters/src/estimateService/proto"
 	fetchDataServicePB "github.com/nicholasbunn/masters/src/fetchDataService/proto"
 	prepareDataServicePB "github.com/nicholasbunn/masters/src/prepareDataService/proto"
-	"google.golang.org/grpc"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/nicholasbunn/masters/src/powerEstimationSP/interceptors"
 )
 
 var (
-	addrFS          = "localhost:50051"
-	addrPS          = "localhost:50052"
-	addrES          = "localhost:50053"
-	timeoutDuration = 5                                       // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
-	INPUTFILENAME   = "TestData/CMU_2019_2020_openWater.xlsx" // MEEP Need to pass a path relative to the execution directory
-	MODELTYPE       = "OPENWATER"
+	addrFS              = "localhost:50051"
+	addrPS              = "localhost:50052"
+	addrES              = "localhost:50053"
+	timeoutDuration     = 5 // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
+	callTimeoutDuration = 15 * time.Second
+	INPUTfilename       = "TestData/CMU_2019_2020_openWater.xlsx" // MEEP Need to pass a path relative to the execution directory
+	MODELTYPE           = "OPENWATER"
 )
 
 // MEEP Implement switch case to deal with user input for model type
@@ -31,25 +39,49 @@ var (
 // MEEP Set timeout values for gRPC Dial
 // MEEP Try to get the information to be streamed
 
+func init() {
+
+}
+
 func main() {
 	fmt.Println("Started GoLang Aggregator")
 
 	// Spin up low-level services
-	SpinUpService("python3", "./src/fetchDataService/", "fetchServer.py")
+	// interpretersSlice := []string{"python3", "python3", "python3"}
+	// directoriesSlice := []string{"./src/fetchDataService/", "./src/prepareDataService/", "./src/estimateService/"}
+	// filenamesSlice := []string{"fetchServer.py", "prepareServer.py", "estimateServer.py"}
 
-	SpinUpService("python3", "./src/prepareDataService/", "prepareServer.py")
-
-	SpinUpService("python3", "./src/estimateService/", "estimateServer.py")
+	// _ = SpinUpServices(interpretersSlice, directoriesSlice, filenamesSlice)
 
 	// First invoke fetchserver
 	/* Create connection to the Python server. Here you need to use the WithInsecure option because
 	the Python server doesn't support secure connections. */
 
-	connFS := CreatePythonServerConnection(addrFS, timeoutDuration)
+	// Create a metrics registry.
+	reg := prometheus.NewRegistry()
+	// Create some standard client metrics.
+	grpcMetrics := grpc_prometheus.NewClientMetrics()
+	// Register client metrics to registry.
+	reg.MustRegister(grpcMetrics)
 
-	connPS := CreatePythonServerConnection(addrPS, timeoutDuration)
+	// Create a HTTP server for prometheus.
+	httpServer := &http.Server{Handler: promhttp.HandlerFor(reg, promhttp.HandlerOpts{}), Addr: fmt.Sprintf("0.0.0.0:%d", 9092)}
 
-	connES := CreatePythonServerConnection(addrES, timeoutDuration)
+	// Start your http server for prometheus.
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil {
+			log.Fatal("Unable to start a http server.")
+		}
+	}()
+
+	callCounterFS := interceptors.ClientMetricStruct{}
+	connFS := CreatePythonServerConnection(addrFS, timeoutDuration, callCounterFS.ClientMetrics)
+
+	callCounterPS := interceptors.ClientMetricStruct{}
+	connPS := CreatePythonServerConnection(addrPS, timeoutDuration, callCounterPS.ClientMetrics)
+
+	callCounterES := interceptors.ClientMetricStruct{}
+	connES := CreatePythonServerConnection(addrES, timeoutDuration, callCounterES.ClientMetrics)
 
 	/* Create the client and pass the connection made above to it. After the client has been
 	created, we create the gRPC request */
@@ -59,13 +91,16 @@ func main() {
 	fmt.Println("Succesfully created the GoLang clients")
 
 	requestMessageFS := fetchDataServicePB.FetchDataRequestMessage{
-		InputFile: INPUTFILENAME,
+		InputFile: INPUTfilename,
 	}
 	fmt.Println("Succesfully created a FetchDataRequestMessage")
 
+	// Create header to read the metadata that the response carries
+	var headerFS, trailerFS metadata.MD // MEEP: Header has no information in it yet, this is filled by the server
+
 	// Make the gRPC service call
-	fetchDataContext, _ := context.WithTimeout(context.Background(), 5*time.Second)            // MEEP could still use the cancelFunc, come back to this
-	responseMessageFS, errFS := clientFS.FetchDataService(fetchDataContext, &requestMessageFS) // The responseMessageFS is a RawDataMessage
+	fetchDataContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration)
+	responseMessageFS, errFS := clientFS.FetchDataService(fetchDataContext, &requestMessageFS, grpc.Header(&headerFS), grpc.Trailer(&trailerFS)) // The responseMessageFS is a RawDataMessage
 	if errFS != nil {
 		fmt.Println("Failed to make FetchData service call: ")
 		log.Fatal(errFS)
@@ -116,7 +151,7 @@ func main() {
 		EncounterFrequencyAve:  responseMessageFS.EncounterFrequencyAve,
 	}
 
-	prepareDataContext, _ := context.WithTimeout(context.Background(), 5*time.Second) // MEEP could still use the cancelFunc, come back to this
+	prepareDataContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration) // MEEP could still use the cancelFunc, come back to this
 	// Invoke prepareserver and pass fetchserver outputs as arguements
 
 	responseMessagePS, errPS := clientPS.PrepareEstimateDataService(prepareDataContext, &requestMessagePS)
@@ -158,7 +193,7 @@ func main() {
 	fmt.Println("Succesfully created an EstimateRequestMessage")
 
 	// Invoke estimateserver and pass prepareserver outputs as arguements
-	estimateContext, _ := context.WithTimeout(context.Background(), 5*time.Second) // MEEP could still use the cancelFunc, come back to this
+	estimateContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration) // MEEP could still use the cancelFunc, come back to this
 	responseMessageES, errES := clientES.EstimatePowerService(estimateContext, &requestMessageES)
 	if errES != nil {
 		fmt.Println("Failed to make Estimate service call: ")
@@ -166,22 +201,40 @@ func main() {
 	}
 	fmt.Println("Succesfully made service call to Python estimateServer")
 	connPS.Close()
-	fmt.Println(responseMessageES.PowerEstimate) // MEEP remove once you've done something with responseMEssageFS
+	fmt.Println(responseMessageES.PowerEstimate[1]) // MEEP remove once you've done something with responseMEssageFS
 }
 
-func SpinUpService(interpreter string, directory string, fileName string) {
-	fmt.Println("Invoking " + interpreter + " service: " + fileName)
-	fileLocation := directory + fileName
-	cmd := exec.Command(interpreter, fileLocation)
-	err := cmd.Start()
-	if err != nil {
-		fmt.Println("Failed to invoke %s: ", fileName)
-		log.Fatal(err)
+func SpinUpServices(interpreter []string, directories []string, filenames []string) bool {
+	// Check that the 'directories' and 'filenames' are of the same length before iterating through them
+	if len(directories) != len(filenames) {
+		fmt.Println("The 'directories' and 'filenames' slices passed into the 'SpinUpSerivces' function are not of equal lengths")
+		log.Fatal()
+		return false // These are here for error handling when I get around to it, won't execute at the moment
+	} else {
+		// Reusable variables
+		fileLocation := ""
+		var cmd *exec.Cmd
+		var err error
+
+		// Iterate through the required services and start them up
+		for i := range directories {
+			fmt.Println("Invoking " + interpreter[i] + " service: " + filenames[i])
+			fileLocation = directories[i] + filenames[i]
+			cmd = exec.Command(interpreter[i], fileLocation)
+			err = cmd.Start()
+			if err != nil {
+				fmt.Println("Failed to invoke {}", filenames[i])
+				log.Fatal(err)
+				return false
+			}
+		}
+
+		return true
 	}
 }
 
-func CreatePythonServerConnection(port string, timeout int) *grpc.ClientConn {
-	conn, err := grpc.Dial(port, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second))
+func CreatePythonServerConnection(port string, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {
+	conn, err := grpc.Dial(port, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
 	if err != nil {
 		fmt.Println("Failed to create connection to Python server on port: " + port)
 		log.Fatal(err)

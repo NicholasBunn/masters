@@ -1,11 +1,11 @@
+# protoc -I src\ --go_out=src\go src\proto\power_estimation.proto
+# protoc --go-grpc_out=src\go src\proto\power_estimation.proto
+
+# protoc -I=src\ --python_out=src\python src\estimate\power_estimation.proto
+# py -m grpc_tools.protoc -I=src --python_out=src\python\estimate --grpc_python_out=src\python\estimate src\proto\power_estimation.proto	
+
+	
 gen:
-	# protoc -I src\ --go_out=src\go src\proto\power_estimation.proto
-	# protoc --go-grpc_out=src\go src\proto\power_estimation.proto
-
-	# # protoc -I=src\ --python_out=src\python src\estimate\power_estimation.proto
-	# py -m grpc_tools.protoc -I=src --python_out=src\python\estimate --grpc_python_out=src\python\estimate src\proto\power_estimation.proto	
-
-	# NEW COMMANDS
 	protoc -I src/ --go_out=src --go-grpc_out=src src/powerEstimationSP/proto/powerEstimationAPI.proto
 
 	# Add a "proto." in line 5 of the _grpc file for all the below Python commands
@@ -20,4 +20,10 @@ clean:
 	rm pb/*.go
 
 run:
-	go run src\go\main.go
+	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/masters/src/fetchDataService/fetchServer.py
+	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/masters/src/prepareDataService/prepareServer.py
+	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/masters/src/estimateService/estimateServer.py
+	go run src/powerEstimationSP/powerEstimationSP.go
+
+test:
+	go test ./...
