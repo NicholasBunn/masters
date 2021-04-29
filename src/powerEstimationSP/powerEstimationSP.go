@@ -44,7 +44,7 @@ var (
 // MEEP Try to get the information to be streamed
 
 func init() {
-
+	// Set up logger
 }
 
 func main() {
