@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os/exec"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
@@ -74,14 +78,19 @@ func main() {
 		}
 	}()
 
+	creds, err := loadTLSCredentials()
+	if err != nil {
+		fmt.Printf("Error loading TLS credentials")
+	}
+
 	callCounterFS := interceptors.ClientMetricStruct{}
-	connFS := CreatePythonServerConnection(addrFS, timeoutDuration, callCounterFS.ClientMetrics)
+	connFS := CreatePythonServerConnection(addrFS, creds, timeoutDuration, callCounterFS.ClientMetrics)
 
 	callCounterPS := interceptors.ClientMetricStruct{}
-	connPS := CreatePythonServerConnection(addrPS, timeoutDuration, callCounterPS.ClientMetrics)
+	connPS := CreatePythonServerConnection(addrPS, creds, timeoutDuration, callCounterPS.ClientMetrics)
 
 	callCounterES := interceptors.ClientMetricStruct{}
-	connES := CreatePythonServerConnection(addrES, timeoutDuration, callCounterES.ClientMetrics)
+	connES := CreatePythonServerConnection(addrES, creds, timeoutDuration, callCounterES.ClientMetrics)
 
 	/* Create the client and pass the connection made above to it. After the client has been
 	created, we create the gRPC request */
@@ -233,8 +242,8 @@ func SpinUpServices(interpreter []string, directories []string, filenames []stri
 	}
 }
 
-func CreatePythonServerConnection(port string, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {
-	conn, err := grpc.Dial(port, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
+func CreatePythonServerConnection(port string, credentials credentials.TransportCredentials, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {
+	conn, err := grpc.Dial(port, grpc.WithTransportCredentials(credentials), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
 	if err != nil {
 		fmt.Println("Failed to create connection to Python server on port: " + port)
 		log.Fatal(err)
@@ -242,4 +251,24 @@ func CreatePythonServerConnection(port string, timeout int, interceptor grpc.Una
 	fmt.Println("Succesfully created connection to the Python server on port: " + port)
 
 	return conn
+}
+
+func loadTLSCredentials() (credentials.TransportCredentials, error) {
+	// Load certificate of the CA who signed server's certificate
+	pemServerCA, err := ioutil.ReadFile("certification/ca-cert.pem")
+	if err != nil {
+		return nil, err
+	}
+
+	certificatePool := x509.NewCertPool()
+	if !certificatePool.AppendCertsFromPEM(pemServerCA) {
+		return nil, fmt.Errorf("Failed to add the server CA's certificate")
+	}
+
+	// Create the credentials and return it
+	config := &tls.Config{
+		RootCAs: certificatePool,
+	}
+
+	return credentials.NewTLS(config), nil
 }

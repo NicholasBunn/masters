@@ -27,3 +27,6 @@ run:
 
 test:
 	go test ./...
+
+certify:
+	cd certification; ./gen.sh; cd ..

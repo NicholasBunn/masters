@@ -85,6 +85,19 @@ class EstimatePowerServicer(power_estimation_pb2_grpc.EstimatePowerServicer):
 		# saveData(seriesAttempt, actualPower)
 		return myResponseMessage
 
+def loadTLSCredentials():
+    keyfile = "certification/server-key.pem"
+    certfile = "certification/server-cert.pem"
+
+    private_key = open(keyfile).read()
+    certificate_chain = open(certfile).read()
+
+    credentials = grpc.ssl_server_credentials(
+        [(bytes(private_key, 'utf-8'), bytes(certificate_chain, 'utf-8'))]
+    )
+	
+    return credentials
+
 def serve():
 	activeInterceptors = [estimateInterceptor.MetricInterceptor()]
 	server = grpc.server(
@@ -92,7 +105,8 @@ def serve():
 		interceptors = activeInterceptors
 		)
 	power_estimation_pb2_grpc.add_EstimatePowerServicer_to_server(EstimatePowerServicer(), server)
-	server.add_insecure_port('[::]:50053')
+	creds = loadTLSCredentials()
+	server.add_secure_port('[::]:50053', creds)
 	server.start()
 	logger.info('Server started on port 50053')
 	server.wait_for_termination()

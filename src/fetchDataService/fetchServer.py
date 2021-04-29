@@ -66,6 +66,19 @@ class FetchDataServicer(fetch_data_api_pb2_grpc.FetchDataServicer):
 
         return thisResponse
 
+def loadTLSCredentials():
+    keyfile = "certification/server-key.pem"
+    certfile = "certification/server-cert.pem"
+
+    private_key = open(keyfile).read()
+    certificate_chain = open(certfile).read()
+
+    credentials = grpc.ssl_server_credentials(
+        [(bytes(private_key, 'utf-8'), bytes(certificate_chain, 'utf-8'))]
+    )
+    
+    return credentials
+
 def serve():
     activeInterceptors = [fetchDataInterceptor.MetricInterceptor()]
     server = grpc.server(
@@ -73,7 +86,8 @@ def serve():
         interceptors = activeInterceptors
     )
     fetch_data_api_pb2_grpc.add_FetchDataServicer_to_server(FetchDataServicer(), server)
-    server.add_insecure_port('[::]:50051')
+    creds = loadTLSCredentials()
+    server.add_secure_port("[::]:50051", creds)
     server.start()
     logger.info('Server started on port 50051')
     server.wait_for_termination()
