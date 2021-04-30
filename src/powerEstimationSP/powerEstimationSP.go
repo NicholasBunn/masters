@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
+	"os"
 	"os/exec"
 	"time"
 
@@ -20,7 +20,6 @@ import (
 	fetchDataServicePB "github.com/nicholasbunn/masters/src/fetchDataService/proto"
 	prepareDataServicePB "github.com/nicholasbunn/masters/src/prepareDataService/proto"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/nicholasbunn/masters/src/powerEstimationSP/interceptors"
 )
@@ -33,6 +32,11 @@ var (
 	callTimeoutDuration = 15 * time.Second
 	INPUTfilename       = "TestData/CMU_2019_2020_openWater.xlsx" // MEEP Need to pass a path relative to the execution directory
 	MODELTYPE           = "OPENWATER"
+
+	// Logging stuff
+	WarningLogger *log.Logger
+	InfoLogger    *log.Logger
+	ErrorLogger   *log.Logger
 )
 
 // MEEP Implement switch case to deal with user input for model type
@@ -45,10 +49,21 @@ var (
 
 func init() {
 	// Set up logger
+	// If the file doesn't exist, create it or append to the file
+	file, err := os.OpenFile("program logs/"+"logs.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.SetOutput(file)
+
+	InfoLogger = log.New(file, "INFO: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
+	WarningLogger = log.New(file, "WARNING: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
+	ErrorLogger = log.New(file, "ERROR: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 }
 
 func main() {
-	fmt.Println("Started GoLang Aggregator")
+	InfoLogger.Println("Started GoLang Aggregator")
 
 	// Spin up low-level services
 	// interpretersSlice := []string{"python3", "python3", "python3"}
@@ -68,19 +83,19 @@ func main() {
 	// Register client metrics to registry.
 	reg.MustRegister(grpcMetrics)
 
-	// Create a HTTP server for prometheus.
-	httpServer := &http.Server{Handler: promhttp.HandlerFor(reg, promhttp.HandlerOpts{}), Addr: fmt.Sprintf("0.0.0.0:%d", 9092)}
+	// // Create a HTTP server for prometheus.
+	// httpServer := &http.Server{Handler: promhttp.HandlerFor(reg, promhttp.HandlerOpts{}), Addr: log.Print("0.0.0.0:%d", 9092)}
 
-	// Start your http server for prometheus.
-	go func() {
-		if err := httpServer.ListenAndServe(); err != nil {
-			log.Fatal("Unable to start a http server.")
-		}
-	}()
+	// // Start your http server for prometheus.
+	// go func() {
+	// 	if err := httpServer.ListenAndServe(); err != nil {
+	// 		log.Fatal("Unable to start a http server.")
+	// 	}
+	// }()
 
 	creds, err := loadTLSCredentials()
 	if err != nil {
-		fmt.Printf("Error loading TLS credentials")
+		log.Printf("Error loading TLS credentials")
 	}
 
 	callCounterFS := interceptors.ClientMetricStruct{}
@@ -97,12 +112,12 @@ func main() {
 	clientFS := fetchDataServicePB.NewFetchDataClient(connFS)
 	clientPS := prepareDataServicePB.NewPrepareDataClient(connPS)
 	clientES := estimateServicePB.NewEstimatePowerClient(connES)
-	fmt.Println("Succesfully created the GoLang clients")
+	InfoLogger.Println("Succesfully created the GoLang clients")
 
 	requestMessageFS := fetchDataServicePB.FetchDataRequestMessage{
 		InputFile: INPUTfilename,
 	}
-	fmt.Println("Succesfully created a FetchDataRequestMessage")
+	InfoLogger.Println("Succesfully created a FetchDataRequestMessage")
 
 	// Create header to read the metadata that the response carries
 	var headerFS, trailerFS metadata.MD // MEEP: Header has no information in it yet, this is filled by the server
@@ -111,10 +126,10 @@ func main() {
 	fetchDataContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration)
 	responseMessageFS, errFS := clientFS.FetchDataService(fetchDataContext, &requestMessageFS, grpc.Header(&headerFS), grpc.Trailer(&trailerFS)) // The responseMessageFS is a RawDataMessage
 	if errFS != nil {
-		fmt.Println("Failed to make FetchData service call: ")
-		log.Fatal(errFS)
+		ErrorLogger.Println("Failed to make FetchData service call: ")
+		ErrorLogger.Fatal(errFS)
 	}
-	fmt.Println("Succesfully made service call to Python fetchDataServer.")
+	InfoLogger.Println("Succesfully made service call to Python fetchDataServer.")
 	connFS.Close()
 
 	requestMessagePS := prepareDataServicePB.PrepareRequestMessage{
@@ -166,10 +181,10 @@ func main() {
 	responseMessagePS, errPS := clientPS.PrepareEstimateDataService(prepareDataContext, &requestMessagePS)
 
 	if errPS != nil {
-		fmt.Println("Failed to make PrepareData service call: ")
-		log.Fatal(errPS)
+		ErrorLogger.Println("Failed to make PrepareData service call: ")
+		ErrorLogger.Fatal(errPS)
 	}
-	fmt.Println("Succesfully made service call to python prepareDataServer.")
+	InfoLogger.Println("Succesfully made service call to python prepareDataServer.")
 	connPS.Close()
 
 	requestMessageES := estimateServicePB.EstimateRequestMessage{
@@ -199,24 +214,25 @@ func main() {
 		requestMessageES.ModelType = estimateServicePB.ModelTypeEnum_OPENWATER
 	}
 
-	fmt.Println("Succesfully created an EstimateRequestMessage")
+	InfoLogger.Println("Succesfully created an EstimateRequestMessage")
 
 	// Invoke estimateserver and pass prepareserver outputs as arguements
 	estimateContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration) // MEEP could still use the cancelFunc, come back to this
 	responseMessageES, errES := clientES.EstimatePowerService(estimateContext, &requestMessageES)
 	if errES != nil {
-		fmt.Println("Failed to make Estimate service call: ")
-		log.Fatal(errES)
+		ErrorLogger.Println("Failed to make Estimate service call: ")
+		ErrorLogger.Fatal(errES)
 	}
-	fmt.Println("Succesfully made service call to Python estimateServer")
+	InfoLogger.Println("Succesfully made service call to Python estimateServer")
 	connPS.Close()
 	fmt.Println(responseMessageES.PowerEstimate[1]) // MEEP remove once you've done something with responseMEssageFS
 }
 
+// DEPRECATED
 func SpinUpServices(interpreter []string, directories []string, filenames []string) bool {
 	// Check that the 'directories' and 'filenames' are of the same length before iterating through them
 	if len(directories) != len(filenames) {
-		fmt.Println("The 'directories' and 'filenames' slices passed into the 'SpinUpSerivces' function are not of equal lengths")
+		log.Println("The 'directories' and 'filenames' slices passed into the 'SpinUpSerivces' function are not of equal lengths")
 		log.Fatal()
 		return false // These are here for error handling when I get around to it, won't execute at the moment
 	} else {
@@ -227,12 +243,12 @@ func SpinUpServices(interpreter []string, directories []string, filenames []stri
 
 		// Iterate through the required services and start them up
 		for i := range directories {
-			fmt.Println("Invoking " + interpreter[i] + " service: " + filenames[i])
+			log.Println("Invoking " + interpreter[i] + " service: " + filenames[i])
 			fileLocation = directories[i] + filenames[i]
 			cmd = exec.Command(interpreter[i], fileLocation)
 			err = cmd.Start()
 			if err != nil {
-				fmt.Println("Failed to invoke {}", filenames[i])
+				log.Println("Failed to invoke {}", filenames[i])
 				log.Fatal(err)
 				return false
 			}
@@ -245,10 +261,10 @@ func SpinUpServices(interpreter []string, directories []string, filenames []stri
 func CreatePythonServerConnection(port string, credentials credentials.TransportCredentials, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {
 	conn, err := grpc.Dial(port, grpc.WithTransportCredentials(credentials), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
 	if err != nil {
-		fmt.Println("Failed to create connection to Python server on port: " + port)
-		log.Fatal(err)
+		ErrorLogger.Println("Failed to create connection to Python server on port: " + port)
+		ErrorLogger.Fatal(err)
 	}
-	fmt.Println("Succesfully created connection to the Python server on port: " + port)
+	InfoLogger.Println("Succesfully created connection to the Python server on port: " + port)
 
 	return conn
 }

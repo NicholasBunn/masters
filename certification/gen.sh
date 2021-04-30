@@ -6,7 +6,7 @@
 
 rm *.pem
 
-# 1. Generate CA's private key and self-signed certificate
+# Generate CA's private key and self-signed certificate
 openssl req -newkey rsa:4096 \
             -x509 \
             -sha256 \
@@ -17,14 +17,26 @@ openssl req -newkey rsa:4096 \
             -subj "/C=ZA/ST=Western Cape/L=Stellenbosch/O=Stelllenbosch University/OU=Engineering/CN=localhost/emailAddress=nicholasbunn@sun.ac.za"
 
 echo "CA's self-signed certificate"
-openssl x509 -in ca-cert.pem -noout -text
+openssl x509 -in ca-cert.pem \
+        -noout -text
 
-# 2. Generate server's private key and certificate signing request (CSR)
-openssl req -newkey rsa:4096 -nodes -keyout server-key.pem -out server-req.pem -subj "/C=AQ/ST=Queen Maud Land/L=Vesleskarvet/O=SANAP/OU=Ship/CN=localhost/emailAddress=nicholasbunn@sun.ac.za"
+# Generate server's private key and certificate signing request (CSR)
+openssl req -newkey rsa:4096 \
+            -nodes \
+            -keyout server-key.pem \
+            -out server-req.pem \
+            -subj "/C=AQ/ST=Queen Maud Land/L=Vesleskarvet/O=SANAP/OU=Ship/CN=localhost/emailAddress=nicholasbunn@sun.ac.za"
 
-# 3. Use CA's private key to sign server's CSR and get back the signed certificate
-openssl x509 -req -in server-req.pem -days 60 -CA ca-cert.pem -CAkey ca-key.pem -CAcreateserial -out server-cert.pem -extfile server-ext.cnf
+# Use CA's private key to sign server's CSR and get back the signed certificate
+openssl x509 -req \
+        -in server-req.pem \
+        -days 365 \
+        -CA ca-cert.pem \
+        -CAkey ca-key.pem \
+        -CAcreateserial \
+        -out server-cert.pem \
+        -extfile server-ext.cnf
 
 echo "Server's signed certificate"
-openssl x509 -in server-cert.pem -noout -text
-
+openssl x509 -in server-cert.pem \
+        -noout -text
