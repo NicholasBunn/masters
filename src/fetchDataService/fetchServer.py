@@ -1,5 +1,6 @@
 #Package imports
 import sys
+import os
 import grpc
 import proto.fetchDataAPI_pb2 as fetch_data_api_pb2
 import proto.fetchDataAPI_pb2_grpc as fetch_data_api_pb2_grpc
@@ -118,11 +119,11 @@ def serve():
 
 	# Create a secure (TLS encrypted) connection on port 50052
 	creds = loadTLSCredentials()
-	server.add_secure_port("[::]:50051", creds)
+	fetchDataHost = os.getenv("FETCHDATAHOST", "localhost") # Receives the hostname from the environmental variables for Docker, or defaults to localhost for local testing
+	server.add_secure_port(f"{fetchDataHost}:50051", creds)
 
 	# Start server and listen for calls on the specified port
 	server.start()
-
 	logger.info('Server started on port 50051')
 	
 	# Defer termination for a 'persistent' service
@@ -138,7 +139,7 @@ if __name__ == '__main__':
 	# Set the fields to be included in the logs
 	formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(module)s:%(funcName)s:%(message)s')
 
-	fileHandler = logging.FileHandler("program logs/"+serviceName+".log")
+	fileHandler = logging.FileHandler(serviceName+".log")
 	fileHandler.setFormatter(formatter)
 
 	logger.addHandler(fileHandler)

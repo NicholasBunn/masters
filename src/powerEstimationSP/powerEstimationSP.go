@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	addrFS              = "localhost:50051"
+	addrFS              = "127.0.0.1:50051"
 	addrPS              = "localhost:50052"
 	addrES              = "localhost:50053"
 	timeoutDuration     = 5 // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
@@ -120,9 +120,10 @@ func main() {
 		ErrorLogger.Println("Failed to make FetchData service call: ")
 		ErrorLogger.Println(errFS)
 		// ErrorLogger.Fatal(errFS)
+	} else {
+		DebugLogger.Println("Succesfully made service call to Python fetchDataServer.")
+		connFS.Close()
 	}
-	DebugLogger.Println("Succesfully made service call to Python fetchDataServer.")
-	connFS.Close()
 
 	requestMessagePS := prepareDataServicePB.PrepareRequestMessage{
 		IndexNumber:            responseMessageFS.IndexNumber,

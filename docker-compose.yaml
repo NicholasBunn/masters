@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+    fetchdataservice:
+        build:
+            context: .
+            dockerfile: src/fetchDataService/Dockerfile
+        environment:
+            FETCHDATAHOST: fetchdataservice
+            PROMETHEUSHOST: prometheus
+            PUSHGATEWAYHOST: pushgateway
+        image: fetch_data_service
+        networks:
+            - southernOcean
+        ports:
+            - 50051:50051
+
+    prometheus:
+        image: prom/prometheus
+        networks:
+            - southernOcean
+        ports:
+          - 9090:9090
+        command: --web.enable-lifecycle  --config.file=/etc/prometheus/prometheus.yml
+
+    pushgateway:
+        image: prom/pushgateway
+        networks:
+            - southernOcean
+        ports:
+            - 9091:9091
+
+networks:
+    southernOcean:
+        
