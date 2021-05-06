@@ -270,20 +270,29 @@ func CreatePythonServerConnection(port string, credentials credentials.Transport
 }
 
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
+
 	// Load certificate of the CA who signed server's certificate
 	pemServerCA, err := ioutil.ReadFile("certification/ca-cert.pem")
 	if err != nil {
 		return nil, err
 	}
 
+	// Load the server CA's certificates
 	certificatePool := x509.NewCertPool()
 	if !certificatePool.AppendCertsFromPEM(pemServerCA) {
 		return nil, fmt.Errorf("Failed to add the server CA's certificate")
 	}
 
+	// Load the client's certificate and private key
+	clientCertificate, err := tls.LoadX509KeyPair("certification/client-cert.pem", "certification/client-key.pem")
+	if err != nil {
+		return nil, err
+	}
+
 	// Create the credentials and return it
 	config := &tls.Config{
-		RootCAs: certificatePool,
+		Certificates: []tls.Certificate{clientCertificate},
+		RootCAs:      certificatePool,
 	}
 
 	return credentials.NewTLS(config), nil

@@ -5,9 +5,5 @@ TestData
 .idea
 src/github.com
 program logs
-certification/ca-cert.pem
-certification/ca-cert.srl
-certification/ca-key.pem
-certification/server-cert.pem
-certification/server-key.pem
-certification/server-req.pem
+certification/*.pem
+certification/*.srl

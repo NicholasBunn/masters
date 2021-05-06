@@ -56,26 +56,37 @@ def saveData(powerEstimation, powerActual):
 	estimateDF.to_excel("toPlot.xlsx")  # Save the full dataset to an Excel file
 
 class EstimatePowerServicer(power_estimation_pb2_grpc.EstimatePowerServicer):
-    	
+		
+	# Override the 'PrepareEstimateDataService' method with the logic that 
+	# that service call should implement
 	def EstimatePowerService(self, request, context):
+			
+		logger.info("Starting the EstimatePowerService")
+
+		# Create the response message
+		myResponseMessage = power_estimation_pb2.EstimateResponseMessage()
+
 		# ________LOADING A PRE-TRAINED MODEL_______
 		activeModel = loadModel(request.model_type)
 		logger.debug("Successfully loaded model")
+
 		# ________RUN THE LOADED MODEL_______
-		# logger.debug("PPMS {}, SPMS {}, PPP {}, PPS {}, SOG {}, WDR {}, WS {}, BN {}, WD {}, WL {}".format(request.port_prop_motor_speed, request.stbd_prop_motor_speed, request.propeller_pitch_port, request.propeller_pitch_stbd, request.sog, request.wind_direction_relative, request.wind_speed, request.beaufort_number, request.wave_direction, request.wave_length))
+		# Map the input variables into a dictionary
 		processedData = {'PortPropMotorSpeed': request.port_prop_motor_speed, 'StbdPropMotorSpeed': request.stbd_prop_motor_speed, 
 						'PropellerPitchPort': request.propeller_pitch_port, 'PropellerPitchStbd': request.propeller_pitch_stbd, 
 						'SOG': request.sog, 'WindDirRel': request.wind_direction_relative, 'WindSpeed': request.wind_speed, 
 						'Beaufort number': request.beaufort_number, 'Wave direction': request.wave_direction, 
 						'Wave length': request.wave_length}
+		
+		# Run the model
 		estimatedPower = runModel(activeModel, pd.DataFrame(processedData))
 		logger.debug("Succesfully ran the model")
+
 		# ________EVALUATE THE LOADED MODEL_______
 		rawData = {'PortPropMotorPower': request.motor_power_port, 'StbdPropMotorPower': request.motor_power_stbd}
 		actualPower = evaluateModel(activeModel, pd.DataFrame(processedData), pd.DataFrame(rawData))
 		logger.debug("Successfully evaluated model")
 
-		myResponseMessage = power_estimation_pb2.EstimateResponseMessage()
 		seriesAttempt = pd.Series(estimatedPower[:,0])
 		myResponseMessage.power_estimate.extend(seriesAttempt)
 		myResponseMessage.power_actual.extend(actualPower)
@@ -86,36 +97,63 @@ class EstimatePowerServicer(power_estimation_pb2_grpc.EstimatePowerServicer):
 		return myResponseMessage
 
 def loadTLSCredentials():
-    keyfile = "certification/server-key.pem"
-    certfile = "certification/server-cert.pem"
-
-    private_key = open(keyfile).read()
-    certificate_chain = open(certfile).read()
-
-    credentials = grpc.ssl_server_credentials(
-        [(bytes(private_key, 'utf-8'), bytes(certificate_chain, 'utf-8'))]
-    )
+	# This function loads in the generated TLS credentials from file, creates
+	# a server credentials object with the key and certificate, and  returns 
+	# that object for use in the server connection
 	
-    return credentials
+	serverKeyFile = "certification/server-key.pem"
+	serverCertFile = "certification/server-cert.pem"
+	caCertFile = "certification/ca-cert.pem"
+
+	# Load the server's certificate and private key
+	private_key = open(serverKeyFile).read()
+	certificate_chain = open(serverCertFile).read()
+
+	# Load certificates of the CA who signed the client's certificate
+	certificate_pool = open(caCertFile).read()
+
+	credentials = grpc.ssl_server_credentials(
+		private_key_certificate_chain_pairs = [(bytes(private_key, 'utf-8'), bytes(certificate_chain, 'utf-8'))],
+		root_certificates = certificate_pool,
+		require_client_auth = True
+	)
+	
+	return credentials
 
 def serve():
-	activeInterceptors = [estimateInterceptor.MetricInterceptor()]
+	# This function creates a server with specified interceptors, registers the service calls offered by that server, and exposes
+	# the server over a specified port. The connection to this port is secured with server-side TLS encryption.
+
+	activeInterceptors = [estimateInterceptor.MetricInterceptor()] # List containing the interceptors to be chained
+
+	# Create a server to serve calls
 	server = grpc.server(
 		futures.ThreadPoolExecutor(max_workers=10),
 		interceptors = activeInterceptors
 		)
+
+	# Register an estimate power service on the server
 	power_estimation_pb2_grpc.add_EstimatePowerServicer_to_server(EstimatePowerServicer(), server)
+
+	# Create a secure (TLS encrypted) connection on port 50052
 	creds = loadTLSCredentials()
 	server.add_secure_port('[::]:50053', creds)
+
+	# Start server and listen for calls on the specified port
 	server.start()
 	logger.info('Server started on port 50053')
+
+		# Defer termination for a 'persistent' service
+
 	server.wait_for_termination()
 
 if __name__ == '__main__':
-	# Logger setup
+		
+	# ________LOGGER SETUP________
 	logger = logging.getLogger(__file__.rsplit("/")[-2].rsplit(".")[0])
 	logger.setLevel(logging.DEBUG)
 
+	# Set the fields to be included in the logs
 	formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(module)s:%(funcName)s:%(message)s')
 
 	fileHandler = logging.FileHandler("program logs/"+__file__.rsplit("/")[-2].rsplit(".")[0]+".log")
@@ -123,4 +161,5 @@ if __name__ == '__main__':
 
 	logger.addHandler(fileHandler)
 
-	serve()
+	# ________SERVE REQUEST________
+	serve() # Finish initialisation by serving the request
