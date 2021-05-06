@@ -6,7 +6,8 @@ import (
 	"encoding/binary"
 	"encoding/gob"
 	"errors"
-	"fmt"
+	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -16,6 +17,14 @@ import (
 
 	// "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
+)
+
+var (
+	// Logging stuff
+	DebugLogger   *log.Logger
+	InfoLogger    *log.Logger
+	WarningLogger *log.Logger
+	ErrorLogger   *log.Logger
 )
 
 // This isn't actually being used right now, reconsider how you're implementing the client-side interceptor
@@ -30,6 +39,21 @@ type ClientMetricStruct struct {
 
 type ServerMetricStruct struct {
 	serverCallCounter *prometheus.Counter
+}
+
+func init() {
+	// Logger setup
+	file, err := os.OpenFile("program logs/"+"logs.log", os.O_APPEND|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.SetOutput(file)
+
+	DebugLogger = log.New(file, "DEBUG: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
+	InfoLogger = log.New(file, "INFO: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
+	WarningLogger = log.New(file, "WARNING: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
+	ErrorLogger = log.New(file, "ERROR: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 }
 
 func GetMessageSize(val interface{}) (int, error) {
@@ -49,7 +73,7 @@ func GetMessageSize(val interface{}) (int, error) {
 
 // Client side
 func (metr *ClientMetricStruct) ClientMetrics(ctx context.Context, method string, req interface{}, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-	fmt.Println("Golang Interceptor")
+	InfoLogger.Println("Starting interceptor method")
 
 	// Run gRPC call here
 	err := invoker(ctx, method, req, reply, cc, opts...)
@@ -75,7 +99,9 @@ func (metr *ClientMetricStruct) ClientMetrics(ctx context.Context, method string
 		Collector(responseSize).
 		Grouping("Service", strings.Split(method, "/")[2]).
 		Push(); err != nil {
-		fmt.Println("Could not push response message size to Pushgateway:", err)
+		ErrorLogger.Println("Could not push response message size to Pushgateway:", err)
+	} else {
+		DebugLogger.Println("Succesfully pushed metrics")
 	}
 
 	return err
