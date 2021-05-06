@@ -20,10 +20,21 @@ clean:
 	rm pb/*.go
 
 run:
+
+server1:
 	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/masters/src/fetchDataService/fetchServer.py
+
+server2:
 	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/masters/src/prepareDataService/prepareServer.py
+
+server3:
 	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/masters/src/estimateService/estimateServer.py
+
+client:
 	go run src/powerEstimationSP/powerEstimationSP.go
 
 test:
 	go test ./...
+
+certify:
+	cd certification; ./gen.sh; cd ..

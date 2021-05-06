@@ -5,3 +5,5 @@ TestData
 .idea
 src/github.com
 program logs
+certification/*.pem
+certification/*.srl
