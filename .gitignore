@@ -4,6 +4,6 @@ TestData
 .vscode
 .idea
 src/github.com
-program logs
+program logs/*
 certification/*.pem
 certification/*.srl
