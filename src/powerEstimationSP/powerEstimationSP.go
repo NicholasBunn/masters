@@ -13,13 +13,10 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
 
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	estimateServicePB "github.com/nicholasbunn/masters/src/estimateService/proto"
 	fetchDataServicePB "github.com/nicholasbunn/masters/src/fetchDataService/proto"
 	prepareDataServicePB "github.com/nicholasbunn/masters/src/prepareDataService/proto"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/nicholasbunn/masters/src/powerEstimationSP/interceptors"
 )
@@ -34,8 +31,9 @@ var (
 	MODELTYPE           = "OPENWATER"
 
 	// Logging stuff
-	WarningLogger *log.Logger
+	DebugLogger   *log.Logger
 	InfoLogger    *log.Logger
+	WarningLogger *log.Logger
 	ErrorLogger   *log.Logger
 )
 
@@ -57,6 +55,7 @@ func init() {
 
 	log.SetOutput(file)
 
+	DebugLogger = log.New(file, "DEBUG: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	InfoLogger = log.New(file, "INFO: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	WarningLogger = log.New(file, "WARNING: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	ErrorLogger = log.New(file, "ERROR: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
@@ -65,23 +64,12 @@ func init() {
 func main() {
 	InfoLogger.Println("Started GoLang Aggregator")
 
-	// Spin up low-level services
-	// interpretersSlice := []string{"python3", "python3", "python3"}
-	// directoriesSlice := []string{"./src/fetchDataService/", "./src/prepareDataService/", "./src/estimateService/"}
-	// filenamesSlice := []string{"fetchServer.py", "prepareServer.py", "estimateServer.py"}
-
-	// _ = SpinUpServices(interpretersSlice, directoriesSlice, filenamesSlice)
-
-	// First invoke fetchserver
-	/* Create connection to the Python server. Here you need to use the WithInsecure option because
-	the Python server doesn't support secure connections. */
-
-	// Create a metrics registry.
-	reg := prometheus.NewRegistry()
-	// Create some standard client metrics.
-	grpcMetrics := grpc_prometheus.NewClientMetrics()
-	// Register client metrics to registry.
-	reg.MustRegister(grpcMetrics)
+	// // Create a metrics registry.
+	// reg := prometheus.NewRegistry()
+	// // Create some standard client metrics.
+	// grpcMetrics := grpc_prometheus.NewClientMetrics()
+	// // Register client metrics to registry.
+	// reg.MustRegister(grpcMetrics)
 
 	// // Create a HTTP server for prometheus.
 	// httpServer := &http.Server{Handler: promhttp.HandlerFor(reg, promhttp.HandlerOpts{}), Addr: log.Print("0.0.0.0:%d", 9092)}
@@ -95,8 +83,9 @@ func main() {
 
 	creds, err := loadTLSCredentials()
 	if err != nil {
-		log.Printf("Error loading TLS credentials")
+		ErrorLogger.Printf("Error loading TLS credentials")
 	}
+	DebugLogger.Println("Succesfully loaded TLS certificates")
 
 	callCounterFS := interceptors.ClientMetricStruct{}
 	connFS := CreatePythonServerConnection(addrFS, creds, timeoutDuration, callCounterFS.ClientMetrics)
@@ -109,27 +98,30 @@ func main() {
 
 	/* Create the client and pass the connection made above to it. After the client has been
 	created, we create the gRPC request */
+	InfoLogger.Println("Creating GoLang Clients")
 	clientFS := fetchDataServicePB.NewFetchDataClient(connFS)
 	clientPS := prepareDataServicePB.NewPrepareDataClient(connPS)
 	clientES := estimateServicePB.NewEstimatePowerClient(connES)
-	InfoLogger.Println("Succesfully created the GoLang clients")
+	DebugLogger.Println("Succesfully created the GoLang clients")
 
 	requestMessageFS := fetchDataServicePB.FetchDataRequestMessage{
 		InputFile: INPUTfilename,
 	}
-	InfoLogger.Println("Succesfully created a FetchDataRequestMessage")
+	DebugLogger.Println("Succesfully created a FetchDataRequestMessage")
 
 	// Create header to read the metadata that the response carries
-	var headerFS, trailerFS metadata.MD // MEEP: Header has no information in it yet, this is filled by the server
+	// var headerFS, trailerFS metadata.MD // MEEP: Header has no information in it yet, this is filled by the server
 
 	// Make the gRPC service call
+	InfoLogger.Println("Making FetchData service call.")
 	fetchDataContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration)
-	responseMessageFS, errFS := clientFS.FetchDataService(fetchDataContext, &requestMessageFS, grpc.Header(&headerFS), grpc.Trailer(&trailerFS)) // The responseMessageFS is a RawDataMessage
+	responseMessageFS, errFS := clientFS.FetchDataService(fetchDataContext, &requestMessageFS) // The responseMessageFS is a RawDataMessage
 	if errFS != nil {
 		ErrorLogger.Println("Failed to make FetchData service call: ")
-		ErrorLogger.Fatal(errFS)
+		ErrorLogger.Println(errFS)
+		// ErrorLogger.Fatal(errFS)
 	}
-	InfoLogger.Println("Succesfully made service call to Python fetchDataServer.")
+	DebugLogger.Println("Succesfully made service call to Python fetchDataServer.")
 	connFS.Close()
 
 	requestMessagePS := prepareDataServicePB.PrepareRequestMessage{
@@ -175,16 +167,17 @@ func main() {
 		EncounterFrequencyAve:  responseMessageFS.EncounterFrequencyAve,
 	}
 
+	InfoLogger.Println("Making PrepareEstimateData service call.")
 	prepareDataContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration) // MEEP could still use the cancelFunc, come back to this
-	// Invoke prepareserver and pass fetchserver outputs as arguements
-
+	// Invoke prepareserver and pass fetchserver outputs as arguments
 	responseMessagePS, errPS := clientPS.PrepareEstimateDataService(prepareDataContext, &requestMessagePS)
 
 	if errPS != nil {
 		ErrorLogger.Println("Failed to make PrepareData service call: ")
-		ErrorLogger.Fatal(errPS)
+		ErrorLogger.Println(errPS)
+		// ErrorLogger.Fatal(errPS)
 	}
-	InfoLogger.Println("Succesfully made service call to python prepareDataServer.")
+	DebugLogger.Println("Succesfully made service call to python prepareDataServer.")
 	connPS.Close()
 
 	requestMessageES := estimateServicePB.EstimateRequestMessage{
@@ -214,17 +207,18 @@ func main() {
 		requestMessageES.ModelType = estimateServicePB.ModelTypeEnum_OPENWATER
 	}
 
-	InfoLogger.Println("Succesfully created an EstimateRequestMessage")
-
+	InfoLogger.Println("Making EstimateRequestMessage service call.")
 	// Invoke estimateserver and pass prepareserver outputs as arguements
 	estimateContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration) // MEEP could still use the cancelFunc, come back to this
 	responseMessageES, errES := clientES.EstimatePowerService(estimateContext, &requestMessageES)
 	if errES != nil {
 		ErrorLogger.Println("Failed to make Estimate service call: ")
-		ErrorLogger.Fatal(errES)
+		ErrorLogger.Println(errES)
+		// ErrorLogger.Fatal(errES)
 	}
-	InfoLogger.Println("Succesfully made service call to Python estimateServer")
+	DebugLogger.Println("Succesfully made service call to Python estimateServer.")
 	connPS.Close()
+
 	fmt.Println(responseMessageES.PowerEstimate[1]) // MEEP remove once you've done something with responseMEssageFS
 }
 
@@ -259,10 +253,14 @@ func SpinUpServices(interpreter []string, directories []string, filenames []stri
 }
 
 func CreatePythonServerConnection(port string, credentials credentials.TransportCredentials, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {
+	// This function takes a port address, credentials object, timeout, and an interceptor as an input, creates a connection to the server at the port adress and returns
+	// a secure gRPC connection with the specified interceptor
+
 	conn, err := grpc.Dial(port, grpc.WithTransportCredentials(credentials), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
 	if err != nil {
 		ErrorLogger.Println("Failed to create connection to Python server on port: " + port)
-		ErrorLogger.Fatal(err)
+		ErrorLogger.Println(err)
+		// ErrorLogger.Fatal(err)
 	}
 	InfoLogger.Println("Succesfully created connection to the Python server on port: " + port)
 
@@ -270,6 +268,8 @@ func CreatePythonServerConnection(port string, credentials credentials.Transport
 }
 
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
+	// This function loads TLS credentials for both the client and server,
+	// enabling mutual TLS authentication between the client and server
 
 	// Load certificate of the CA who signed server's certificate
 	pemServerCA, err := ioutil.ReadFile("certification/ca-cert.pem")
