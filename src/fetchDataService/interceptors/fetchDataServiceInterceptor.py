@@ -1,10 +1,10 @@
-from grpc_interceptor import ServerInterceptor
-import grpc
-import prometheus_client as prometheus
-import requests
+import os
 import time
 import logging
-import os
+# import requests
+import grpc # Change to grpcio???
+from grpc_interceptor import ServerInterceptor
+import prometheus_client as prometheus
 
 # Logger setup
 logger = logging.getLogger(__file__.rsplit("/")[-3].rsplit(".")[0])
@@ -15,7 +15,6 @@ def pushToPrometheus(c, g, h, executionTime, address, job, registry):
 	g.set_to_current_time()
 	h.observe(executionTime)
 	
-	logger.debug(address)
 	prometheus.push_to_gateway(address, job=job, registry=registry)
 	logger.info("Succesfully pushed metrics")
 
@@ -49,8 +48,8 @@ def sendMetrics(func):
 
 class MetricInterceptor(ServerInterceptor):
 	pushGatewayaHost = os.getenv("PUSHGATEWAYHOST", "localhost") # Receives the hostname from the environmental variables for Docker, or defaults to localhost for local testing
-	address = "http://" + pushGatewayaHost + ":9091" # Rodo: pass/pull this from the message metadata
-
+	address = "http://" + pushGatewayaHost + ":9091" # Todo: pass/pull this from the message metadata
+	
 	def __init__(self):
 		logger.debug("Initialising metric interceptor")
 		self.registry = prometheus.CollectorRegistry()

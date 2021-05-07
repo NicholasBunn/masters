@@ -23,7 +23,7 @@ import (
 
 var (
 	addrFS              = "127.0.0.1:50051"
-	addrPS              = "localhost:50052"
+	addrPS              = "127.0.0.1:50052"
 	addrES              = "localhost:50053"
 	timeoutDuration     = 5 // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
 	callTimeoutDuration = 15 * time.Second

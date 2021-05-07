@@ -15,6 +15,20 @@ services:
         ports:
             - 50051:50051
 
+    preparedataservice:
+        build:
+            context: .
+            dockerfile: src/prepareDataService/Dockerfile
+        environment: 
+            PREPAREDATAHOST: preparedataservice
+            PROMETHEUSHOST: prometheus
+            PUSHGATEWAYHOST: pushgateway
+        image: prepare_data_service
+        networks: 
+            - southernOcean
+        ports: 
+            - 50052:50052
+
     prometheus:
         image: prom/prometheus
         networks:
