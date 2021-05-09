@@ -1,4 +1,4 @@
-FROM python
+FROM python:3.8.5
 
 # Create service directory
 RUN mkdir /service
@@ -6,11 +6,12 @@ RUN mkdir /service
 RUN mkdir /service/program\ logs
 
 # Copy the 'proto' and 'interceptors' folders into the service directory
-COPY src/prepareDataService/proto/ /service/proto
-COPY src/prepareDataService/interceptors/ /service/interceptors
+COPY src/estimateService/proto/ /service/proto
+COPY src/estimateService/interceptors/ /service/interceptors
 COPY certification/ /service/certification
-COPY src/prepareDataService/requirements.txt /service
-COPY src/prepareDataService/prepareServer.py /service
+COPY Models/ /service/Models
+COPY src/estimateService/requirements.txt /service
+COPY src/estimateService/estimateServer.py /service
 
 # Basically performing cd inside the image and setting the work directory
 WORKDIR /service
@@ -23,7 +24,7 @@ RUN python3 -m pip install -r requirements.txt
 # Run the python protoc command to generate the python files
 # RUN python3 -m grpc_tools.protoc -I ../protobufs --python_out=. / --grpc_python_out=
 
-# Tells Docker that we're going to run the microservice on port 50052
-EXPOSE 50052
+# Tells Docker that we're going to run the microservice on port 50053
+EXPOSE 50053
 # Tells Docker how to run the microservice
-ENTRYPOINT [ "python3", "prepareServer.py" ]
+ENTRYPOINT [ "python3", "estimateServer.py" ]copy

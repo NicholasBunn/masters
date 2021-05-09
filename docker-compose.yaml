@@ -29,6 +29,20 @@ services:
         ports: 
             - 50052:50052
 
+    estimateservice:
+        build:
+            context: .
+            dockerfile: src/estimateService/Dockerfile
+        environment: 
+            ESTIMATEHOST: estimateservice
+            PROMETHEUSHOST: prometheus
+            PUSHGATEWAYHOST: pushgateway
+        image: estimate_service
+        networks: 
+            - southernOcean
+        ports: 
+            - 50053:50053
+
     prometheus:
         image: prom/prometheus
         networks:

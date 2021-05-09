@@ -1,11 +1,12 @@
 #	Package imports
+import os
+import logging
+from concurrent import futures
 import grpc
 import proto.estimateAPI_pb2 as power_estimation_pb2
 import proto.estimateAPI_pb2_grpc as power_estimation_pb2_grpc
 import interceptors.estimateServiceInterceptor as estimateInterceptor
-import logging
 import pandas as pd
-from concurrent import futures
 from keras import models
 
 def loadModel(modelType):
@@ -13,11 +14,11 @@ def loadModel(modelType):
 	# NOTE: The model that is called is passed the absolute path as opposed to only the model name
 	def modelSelector(argument):
 		switcher = {
-			0: "/home/nic/go/src/github.com/nicholasbunn/masters/TestData/OpenWaterModel_R67.h5", # If no model is supplied, assume open water operation
-			1: "/home/nic/go/src/github.com/nicholasbunn/masters/TestData/OpenWaterModel_R67.h5", #C:/Users/nicho/go/src/github.com/nicholasbunn/SANAE60/src/python/estimate/OpenWaterModel_R67.h5
-			2: "IceModel_R58.h5",
+			0: "Models/OpenWaterModel_R67.h5", # If no model is supplied, assume open water operation
+			1: "Models/OpenWaterModel_R67.h5", #C:/Users/nicho/go/src/github.com/nicholasbunn/SANAE60/src/python/estimate/OpenWaterModel_R67.h5
+			2: "Models/IceModel_R58.h5",
 		}
-		return switcher.get(argument, "C:/Users/nicho/go/src/github.com/nicholasbunn/SANAE60/src/python/estimate/OpenWaterModel_R67.h5") # Again, if no model is supplied, assume open water operation
+		return switcher.get(argument, "Models/OpenWaterModel_R67.h5") # Again, if no model is supplied, assume open water operation
 
 	# MEEP do I actually use this switcher?
 	workableModel = models.load_model(modelSelector(modelType))  # Import the model that was passed as an argument
@@ -121,8 +122,7 @@ def loadTLSCredentials():
 	return credentials
 
 def serve():
-	# This function creates a server with specified interceptors, registers the service calls offered by that server, and exposes
-	# the server over a specified port. The connection to this port is secured with server-side TLS encryption.
+	# This function creates a server with specified interceptors, registers the service calls offered by that server, and exposes the server over a specified port. The connection to this port is secured with server-side TLS encryption.
 
 	activeInterceptors = [estimateInterceptor.MetricInterceptor()] # List containing the interceptors to be chained
 
@@ -137,7 +137,8 @@ def serve():
 
 	# Create a secure (TLS encrypted) connection on port 50052
 	creds = loadTLSCredentials()
-	server.add_secure_port('[::]:50053', creds)
+	estimateHost = os.getenv(key = "ESTIMATEHOST", default = "localhost") # Receives the hostname from the environmental variables (for Docker network), or defaults to localhost for local testing
+	server.add_secure_port(f"{estimateHost}:50053", creds)
 
 	# Start server and listen for calls on the specified port
 	server.start()
@@ -150,13 +151,14 @@ def serve():
 if __name__ == '__main__':
 		
 	# ________LOGGER SETUP________
-	logger = logging.getLogger(__file__.rsplit("/")[-2].rsplit(".")[0])
+	serviceName = __file__.rsplit("/")[0].rsplit(".")[0]
+	logger = logging.getLogger(serviceName)
 	logger.setLevel(logging.DEBUG)
 
 	# Set the fields to be included in the logs
 	formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(module)s:%(funcName)s:%(message)s')
 
-	fileHandler = logging.FileHandler("program logs/"+__file__.rsplit("/")[-2].rsplit(".")[0]+".log")
+	fileHandler = logging.FileHandler("program logs/"+serviceName+".log")
 	fileHandler.setFormatter(formatter)
 
 	logger.addHandler(fileHandler)
