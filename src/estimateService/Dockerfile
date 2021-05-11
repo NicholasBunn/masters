@@ -27,4 +27,4 @@ RUN python3 -m pip install -r requirements.txt
 # Tells Docker that we're going to run the microservice on port 50053
 EXPOSE 50053
 # Tells Docker how to run the microservice
-ENTRYPOINT [ "python3", "estimateServer.py" ]copy
+ENTRYPOINT [ "python3", "estimateServer.py" ]

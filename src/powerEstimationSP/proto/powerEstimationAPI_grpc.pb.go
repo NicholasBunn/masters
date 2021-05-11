@@ -32,7 +32,7 @@ func NewPowerEstimationServicePackageClient(cc grpc.ClientConnInterface) PowerEs
 
 func (c *powerEstimationServicePackageClient) PowerEstimatorService(ctx context.Context, in *ServicePackageRequestMessage, opts ...grpc.CallOption) (*EstimateResponseMessage, error) {
 	out := new(EstimateResponseMessage)
-	err := c.cc.Invoke(ctx, "/powerEstimation.PowerEstimationServicePackage/PowerEstimatorService", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/PowerEstimationServicePackage/PowerEstimatorService", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func (c *powerEstimationServicePackageClient) PowerEstimatorService(ctx context.
 
 func (c *powerEstimationServicePackageClient) PowerEvaluatorService(ctx context.Context, in *ServicePackageRequestMessage, opts ...grpc.CallOption) (*EvaluateResponseMessage, error) {
 	out := new(EvaluateResponseMessage)
-	err := c.cc.Invoke(ctx, "/powerEstimation.PowerEstimationServicePackage/PowerEvaluatorService", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/PowerEstimationServicePackage/PowerEvaluatorService", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func _PowerEstimationServicePackage_PowerEstimatorService_Handler(srv interface{
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/powerEstimation.PowerEstimationServicePackage/PowerEstimatorService",
+		FullMethod: "/PowerEstimationServicePackage/PowerEstimatorService",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PowerEstimationServicePackageServer).PowerEstimatorService(ctx, req.(*ServicePackageRequestMessage))
@@ -109,7 +109,7 @@ func _PowerEstimationServicePackage_PowerEvaluatorService_Handler(srv interface{
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/powerEstimation.PowerEstimationServicePackage/PowerEvaluatorService",
+		FullMethod: "/PowerEstimationServicePackage/PowerEvaluatorService",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PowerEstimationServicePackageServer).PowerEvaluatorService(ctx, req.(*ServicePackageRequestMessage))
@@ -121,7 +121,7 @@ func _PowerEstimationServicePackage_PowerEvaluatorService_Handler(srv interface{
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var PowerEstimationServicePackage_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "powerEstimation.PowerEstimationServicePackage",
+	ServiceName: "PowerEstimationServicePackage",
 	HandlerType: (*PowerEstimationServicePackageServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

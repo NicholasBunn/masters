@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "powerEstimation";
+option go_package = "powerEstimationSP/proto;powerEstimation";
 
 message ServicePackageRequestMessage {
     string input_file = 1;
