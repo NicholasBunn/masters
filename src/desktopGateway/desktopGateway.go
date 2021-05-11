@@ -44,7 +44,7 @@ const (
 
 func init() {
 	// Set up logger
-	// If the file doesn't exist, create it or append to the file
+	// f the file doesn't exist, create it, otherwise append to the file
 	file, err := os.OpenFile("program logs/"+"desktopGateway.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
@@ -58,6 +58,17 @@ func init() {
 	ErrorLogger = log.New(file, "ERROR: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 }
 
+// Use this to implement the login service routing
+type loginServer struct {
+	serverPB.UnimplementedLoginServiceServer
+}
+
+// Use this to implement the power estimation service routing
+type estimationServer struct {
+	serverPB.UnimplementedPowerEstimationServicesServer
+	serverPB.UnimplementedLoginServiceServer
+}
+
 func main() {
 	// // Load in credentials
 	// creds, err := loadTLSCredentials()
@@ -66,10 +77,6 @@ func main() {
 	// } else {
 	// 	DebugLogger.Println("Succesfully loaded TLS certificates")
 	// }
-
-	// Receive login request
-	// Login to DB
-	// Return permissions to the frontend
 
 	// ________RECEIVE REQUEST________
 	// Create a listener on the specified tcp port
@@ -83,19 +90,31 @@ func main() {
 	// Create a grpc server object
 	gatewayServer := grpc.NewServer()
 	// Attach the power estimation service package offering to the server
-	serverPB.RegisterPowerEstimationServicesServer(gatewayServer, &server{})
+	serverPB.RegisterPowerEstimationServicesServer(gatewayServer, &estimationServer{})
+	serverPB.RegisterLoginServiceServer(gatewayServer, &loginServer{})
 	// Start the server
 	if err := gatewayServer.Serve(listener); err != nil {
 		ErrorLogger.Fatalf("Failed to expose service: \n%v", err)
 	}
 }
 
-// Use this to implement the power estimation service routing
-type server struct {
-	serverPB.UnimplementedPowerEstimationServicesServer
+func (s *loginServer) Login(ctx context.Context, request *serverPB.LoginRequest) (*serverPB.LoginResponse, error) {
+	responseMessage := serverPB.LoginResponse{
+		Permissions: "pass",
+	}
+
+	return &responseMessage, nil
 }
 
-func (s *server) PowerEstimationSP(ctx context.Context, request *serverPB.EstimationRequest) (*serverPB.PowerEstimationResponse, error) {
+func (s *estimationServer) CostEstimationSP(ctx context.Context, request *serverPB.EstimationRequest) (*serverPB.CostEstimationRespose, error) {
+	responseMessage := serverPB.CostEstimationRespose{
+		Blabla: "pass",
+	}
+
+	return &responseMessage, nil
+}
+
+func (s *estimationServer) PowerEstimationSP(ctx context.Context, request *serverPB.EstimationRequest) (*serverPB.PowerEstimationResponse, error) {
 	// Create a connection over the specified tcp port
 	callCounter := interceptors.ClientMetricStruct{}
 	connEstimationSP := CreateInsecureServerConnection(addrEstimationSP, timeoutDuration, callCounter.ClientMetrics)

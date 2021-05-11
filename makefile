@@ -35,8 +35,14 @@ server2:
 server3:
 	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/masters/src/estimateService/estimateServer.py
 
-client:
+SP1:
 	go run src/powerEstimationSP/powerEstimationSP.go
+
+gateway1:
+	go run src/desktopGateway/desktopGateway.go
+
+frontend1:
+	go run src/frontend/frontendProxy.go
 
 test:
 	go test ./...

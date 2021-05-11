@@ -40,8 +40,6 @@ const (
 	callTimeoutDuration = 15 * time.Second
 )
 
-// MEEP Implement switch case to deal with user input for model type
-// MEEP Figure out how to shutdown python server and possibly pass number of service calls as arguments
 // MEEP Should errors be fatal, or should the program run regardless? Reconsider error handling on a case-by-case basis
 // MEEP Implement secure connections
 // MEEP Set service call timeout values
