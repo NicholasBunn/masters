@@ -99,6 +99,11 @@ func main() {
 }
 
 func (s *loginServer) Login(ctx context.Context, request *serverPB.LoginRequest) (*serverPB.LoginResponse, error) {
+	// ________CONNECT TO USER DATABASE________
+
+	// ________SEARCH FOR/VERIFY USER WITH PROVIDED CREDENTIALS________
+
+	// ________RETURN PERMISSIONS/RESPONSE________
 	responseMessage := serverPB.LoginResponse{
 		Permissions: "pass",
 	}

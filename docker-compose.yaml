@@ -43,20 +43,23 @@ services:
         ports: 
             - 50053:50053
 
+    pushgateway:
+        image: prom/pushgateway
+        networks:
+           - southernOcean
+        ports:
+            - 9091:9091
+
     prometheus:
-        image: prom/prometheus
+        build:
+            context: .
+            dockerfile: src/prometheus/Dockerfile
+        image: my_prometheus
         networks:
             - southernOcean
         ports:
           - 9090:9090
         command: --web.enable-lifecycle  --config.file=/etc/prometheus/prometheus.yml
-
-    pushgateway:
-        image: prom/pushgateway
-        networks:
-            - southernOcean
-        ports:
-            - 9091:9091
 
 networks:
     southernOcean:

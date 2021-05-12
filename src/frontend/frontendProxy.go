@@ -33,6 +33,7 @@ func main() {
 	connDesktopGateway := CreateInsecureServerConnection(addrDesktopGateway, timeoutDuration, callCounter.ClientMetrics)
 
 	clientDesktopGateway := desktopPB.NewPowerEstimationServicesClient(connDesktopGateway)
+	clientLoginDesktopGateway := desktopPB.NewLoginServiceClient(connDesktopGateway)
 
 	requestMessage := desktopPB.EstimationRequest{
 		Bla: "blank",
@@ -47,6 +48,17 @@ func main() {
 		fmt.Println(response.PowerEstimate[1])
 	}
 
+	loginRequest := desktopPB.LoginRequest{
+		Username:       "devUsername",
+		HashedPassword: "devPassword",
+	}
+
+	newResponse, newErr := clientLoginDesktopGateway.Login(desktopContext, &loginRequest)
+	if newErr != nil {
+		fmt.Println("Failed")
+	} else {
+		fmt.Println(newResponse)
+	}
 }
 
 func CreateInsecureServerConnection(port string, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {
