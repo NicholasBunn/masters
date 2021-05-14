@@ -24,6 +24,12 @@ import (
 )
 
 var (
+	// Addresses
+	addrMyself = os.Getenv("POWERESTIMATIONHOST") + ":50101"
+	addrFS     = os.Getenv("FETCHHOST") + ":50051"
+	addrPS     = os.Getenv("PREPAREHOST") + ":50052"
+	addrES     = os.Getenv("ESTIMATEHOST") + ":50053"
+
 	// Logging stuff
 	DebugLogger   *log.Logger
 	InfoLogger    *log.Logger
@@ -32,10 +38,7 @@ var (
 )
 
 const (
-	addrMyself          = "localhost:50101"
-	addrFS              = "127.0.0.1:50051"
-	addrPS              = "127.0.0.1:50052"
-	addrES              = "127.0.0.1:50053"
+	// Timeouts
 	timeoutDuration     = 5 // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
 	callTimeoutDuration = 15 * time.Second
 )
@@ -70,12 +73,13 @@ func main() {
 	if err != nil {
 		ErrorLogger.Fatalf("Failed to listen on port %v: \n%v", addrMyself, err)
 	}
-	InfoLogger.Println("Listeneing on port: ", addrMyself)
+	InfoLogger.Println("Listening on port: ", addrMyself)
 
 	// Create a gRPC server object
 	estimationServer := grpc.NewServer()
 	// Attach the power estimation service to the server
 	serverPB.RegisterPowerEstimationServicePackageServer(estimationServer, &server{})
+	DebugLogger.Println("Succesfully registered Power Estimation Service Package to the server")
 	// Start the server
 	if err := estimationServer.Serve(listener); err != nil {
 		ErrorLogger.Fatalf("Failed to expose service: \n%v", err)
@@ -88,23 +92,23 @@ type server struct {
 }
 
 func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.ServicePackageRequestMessage) (*serverPB.EstimateResponseMessage, error) {
-	InfoLogger.Println("Received Power Estimator service call")
-	// Load in credentials for the servers
-	creds, err := loadTLSCredentials()
-	if err != nil {
-		ErrorLogger.Printf("Error loading TLS credentials")
-	} else {
-		DebugLogger.Println("Succesfully loaded TLS certificates")
-	}
+	// InfoLogger.Println("Received Power Estimator service call")
+	// // Load in credentials for the servers
+	// creds, err := loadTLSCredentials()
+	// if err != nil {
+	// 	ErrorLogger.Printf("Error loading TLS credentials")
+	// } else {
+	// 	DebugLogger.Println("Succesfully loaded TLS certificates")
+	// }
 
 	callCounterFS := interceptors.ClientMetricStruct{}
-	connFS := CreateServerConnection(addrFS, creds, timeoutDuration, callCounterFS.ClientMetrics)
+	connFS := CreateInsecureServerConnection(addrFS, timeoutDuration, callCounterFS.ClientMetrics)
 
 	callCounterPS := interceptors.ClientMetricStruct{}
-	connPS := CreateServerConnection(addrPS, creds, timeoutDuration, callCounterPS.ClientMetrics)
+	connPS := CreateInsecureServerConnection(addrPS, timeoutDuration, callCounterPS.ClientMetrics)
 
 	callCounterES := interceptors.ClientMetricStruct{}
-	connES := CreateServerConnection(addrES, creds, timeoutDuration, callCounterES.ClientMetrics)
+	connES := CreateInsecureServerConnection(addrES, timeoutDuration, callCounterES.ClientMetrics)
 
 	/* Create the client and pass the connection made above to it. After the client has been
 	created, we create the gRPC request */
@@ -262,6 +266,21 @@ func SpinUpServices(interpreter []string, directories []string, filenames []stri
 
 		return true
 	}
+}
+
+func CreateInsecureServerConnection(port string, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {
+	// This function takes a port address, credentials object, timeout, and an interceptor as an input, creates a connection to the server at the port adress and returns
+	// a secure gRPC connection with the specified interceptor
+
+	conn, err := grpc.Dial(port, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
+	if err != nil {
+		ErrorLogger.Println("Failed to create connection to server on port: " + port)
+		ErrorLogger.Println(err)
+		// ErrorLogger.Fatal(err)
+	} else {
+		InfoLogger.Println("Succesfully created connection to the server on port: " + port)
+	}
+	return conn
 }
 
 func CreateServerConnection(port string, credentials credentials.TransportCredentials, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {

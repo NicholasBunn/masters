@@ -43,6 +43,23 @@ services:
         ports: 
             - 50053:50053
 
+    powerestimationsp:
+        build: 
+            context: .
+            dockerfile: src/powerEstimationSP/Dockerfile
+        environment: 
+            POWERESTIMATIONHOST: powerestimationsp
+            FETCHHOST: fetchdataservice
+            PREPAREHOST: preparedataservice
+            ESTIMATEHOST: estimateservice
+            PROMETHEUSHOST: prometheus
+            PUSHGATEWAYHOST: pushgateway
+        image: power_estimation_sp
+        networks: 
+            - southernOcean
+        ports: 
+            - 50101:50101
+
     pushgateway:
         image: prom/pushgateway
         networks:

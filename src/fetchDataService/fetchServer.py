@@ -120,9 +120,10 @@ def serve():
 	fetch_data_api_pb2_grpc.add_FetchDataServicer_to_server(FetchDataServicer(), server)
 
 	# Create a secure (TLS encrypted) connection on port 50052
-	creds = loadTLSCredentials()
+	# creds = loadTLSCredentials()
 	fetchDataHost = os.getenv(key = "FETCHDATAHOST", default = "localhost") # Receives the hostname from the environmental variables (for Docker network), or defaults to localhost for local testing
-	server.add_secure_port(f"{fetchDataHost}:50051", creds)
+	# server.add_secure_port(f"{fetchDataHost}:50051", creds)
+	server.add_insecure_port(f"{fetchDataHost}:50051")
 
 	# Start server and listen for calls on the specified port
 	server.start()
