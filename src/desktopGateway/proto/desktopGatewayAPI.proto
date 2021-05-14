@@ -28,7 +28,7 @@ message LoginResponse {
 // Service calls for estimation service package
 service PowerEstimationServices {
     rpc CostEstimationSP(EstimationRequest) returns (CostEstimationRespose);
-    rpc powerEstimationSP(EstimationRequest) returns (PowerEstimationResponse);
+    rpc PowerEstimationSP(EstimationRequest) returns (PowerEstimationResponse);
 }
 
 // Service calls for login functionality

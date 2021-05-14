@@ -41,7 +41,7 @@ func (c *powerEstimationServicesClient) CostEstimationSP(ctx context.Context, in
 
 func (c *powerEstimationServicesClient) PowerEstimationSP(ctx context.Context, in *EstimationRequest, opts ...grpc.CallOption) (*PowerEstimationResponse, error) {
 	out := new(PowerEstimationResponse)
-	err := c.cc.Invoke(ctx, "/PowerEstimationServices/powerEstimationSP", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/PowerEstimationServices/PowerEstimationSP", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func _PowerEstimationServices_PowerEstimationSP_Handler(srv interface{}, ctx con
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/PowerEstimationServices/powerEstimationSP",
+		FullMethod: "/PowerEstimationServices/PowerEstimationSP",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PowerEstimationServicesServer).PowerEstimationSP(ctx, req.(*EstimationRequest))
@@ -129,7 +129,7 @@ var PowerEstimationServices_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PowerEstimationServices_CostEstimationSP_Handler,
 		},
 		{
-			MethodName: "powerEstimationSP",
+			MethodName: "PowerEstimationSP",
 			Handler:    _PowerEstimationServices_PowerEstimationSP_Handler,
 		},
 	},
