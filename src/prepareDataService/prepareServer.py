@@ -1,12 +1,13 @@
+import os
+import logging
+from concurrent import futures
 import grpc
 import proto.prepareDataAPI_pb2 as power_estimation_pb2
 import proto.prepareDataAPI_pb2_grpc as power_estimation_pb2_grpc
 import interceptors.prepareServiceInterceptor as prepareInterceptor
-import logging
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-from concurrent import futures
 
 def processData(dataSet):
 	# This function takes a (structured) dataFrame as an input, normalises and orders 
@@ -161,11 +162,11 @@ def serve():
 
 	# Create a secure (TLS encrypted) connection on port 50052
 	creds = loadTLSCredentials()
-	server.add_secure_port('[::]:50052', creds)
+	prepareDataHost = os.getenv(key = "PREPAREDATAHOST", default = "localhost") # Receives the hostname from the environmental variables (for Docker network), or defaults to localhost for local testing
+	server.add_secure_port(f"{prepareDataHost}:50052", creds)
 
 	# Start server and listen for calls on the specified port
 	server.start()
-
 	logger.info('Server started on port 50052')
 
 	# Defer termination for a 'persistent' service
@@ -182,7 +183,7 @@ if __name__ == '__main__':
 	formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(module)s:%(funcName)s:%(message)s')
 
 	# Create/set the file in which the log will be stored
-	fileHandler = logging.FileHandler("program logs/"+serviceName+".log")
+	fileHandler = logging.FileHandler("program logs/" + serviceName + ".log")
 	fileHandler.setFormatter(formatter)
 
 	logger.addHandler(fileHandler)

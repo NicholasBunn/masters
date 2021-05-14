@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"time"
@@ -16,20 +17,13 @@ import (
 
 	estimateServicePB "github.com/nicholasbunn/masters/src/estimateService/proto"
 	fetchDataServicePB "github.com/nicholasbunn/masters/src/fetchDataService/proto"
+	serverPB "github.com/nicholasbunn/masters/src/powerEstimationSP/proto"
 	prepareDataServicePB "github.com/nicholasbunn/masters/src/prepareDataService/proto"
 
 	"github.com/nicholasbunn/masters/src/powerEstimationSP/interceptors"
 )
 
 var (
-	addrFS              = "localhost:50051"
-	addrPS              = "localhost:50052"
-	addrES              = "localhost:50053"
-	timeoutDuration     = 5 // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
-	callTimeoutDuration = 15 * time.Second
-	INPUTfilename       = "TestData/CMU_2019_2020_openWater.xlsx" // MEEP Need to pass a path relative to the execution directory
-	MODELTYPE           = "OPENWATER"
-
 	// Logging stuff
 	DebugLogger   *log.Logger
 	InfoLogger    *log.Logger
@@ -37,8 +31,15 @@ var (
 	ErrorLogger   *log.Logger
 )
 
-// MEEP Implement switch case to deal with user input for model type
-// MEEP Figure out how to shutdown python server and possibly pass number of service calls as arguments
+const (
+	addrMyself          = "localhost:50101"
+	addrFS              = "127.0.0.1:50051"
+	addrPS              = "127.0.0.1:50052"
+	addrES              = "127.0.0.1:50053"
+	timeoutDuration     = 5 // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
+	callTimeoutDuration = 15 * time.Second
+)
+
 // MEEP Should errors be fatal, or should the program run regardless? Reconsider error handling on a case-by-case basis
 // MEEP Implement secure connections
 // MEEP Set service call timeout values
@@ -64,37 +65,46 @@ func init() {
 func main() {
 	InfoLogger.Println("Started GoLang Aggregator")
 
-	// // Create a metrics registry.
-	// reg := prometheus.NewRegistry()
-	// // Create some standard client metrics.
-	// grpcMetrics := grpc_prometheus.NewClientMetrics()
-	// // Register client metrics to registry.
-	// reg.MustRegister(grpcMetrics)
+	// Create a listener on the specified tcp port
+	listener, err := net.Listen("tcp", addrMyself)
+	if err != nil {
+		ErrorLogger.Fatalf("Failed to listen on port %v: \n%v", addrMyself, err)
+	}
+	InfoLogger.Println("Listeneing on port: ", addrMyself)
 
-	// // Create a HTTP server for prometheus.
-	// httpServer := &http.Server{Handler: promhttp.HandlerFor(reg, promhttp.HandlerOpts{}), Addr: log.Print("0.0.0.0:%d", 9092)}
+	// Create a gRPC server object
+	estimationServer := grpc.NewServer()
+	// Attach the power estimation service to the server
+	serverPB.RegisterPowerEstimationServicePackageServer(estimationServer, &server{})
+	// Start the server
+	if err := estimationServer.Serve(listener); err != nil {
+		ErrorLogger.Fatalf("Failed to expose service: \n%v", err)
+	}
+}
 
-	// // Start your http server for prometheus.
-	// go func() {
-	// 	if err := httpServer.ListenAndServe(); err != nil {
-	// 		log.Fatal("Unable to start a http server.")
-	// 	}
-	// }()
+// server is used to implement PowerEstimationServicePackage
+type server struct {
+	serverPB.UnimplementedPowerEstimationServicePackageServer
+}
 
+func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.ServicePackageRequestMessage) (*serverPB.EstimateResponseMessage, error) {
+	InfoLogger.Println("Received Power Estimator service call")
+	// Load in credentials for the servers
 	creds, err := loadTLSCredentials()
 	if err != nil {
 		ErrorLogger.Printf("Error loading TLS credentials")
+	} else {
+		DebugLogger.Println("Succesfully loaded TLS certificates")
 	}
-	DebugLogger.Println("Succesfully loaded TLS certificates")
 
 	callCounterFS := interceptors.ClientMetricStruct{}
-	connFS := CreatePythonServerConnection(addrFS, creds, timeoutDuration, callCounterFS.ClientMetrics)
+	connFS := CreateServerConnection(addrFS, creds, timeoutDuration, callCounterFS.ClientMetrics)
 
 	callCounterPS := interceptors.ClientMetricStruct{}
-	connPS := CreatePythonServerConnection(addrPS, creds, timeoutDuration, callCounterPS.ClientMetrics)
+	connPS := CreateServerConnection(addrPS, creds, timeoutDuration, callCounterPS.ClientMetrics)
 
 	callCounterES := interceptors.ClientMetricStruct{}
-	connES := CreatePythonServerConnection(addrES, creds, timeoutDuration, callCounterES.ClientMetrics)
+	connES := CreateServerConnection(addrES, creds, timeoutDuration, callCounterES.ClientMetrics)
 
 	/* Create the client and pass the connection made above to it. After the client has been
 	created, we create the gRPC request */
@@ -105,12 +115,9 @@ func main() {
 	DebugLogger.Println("Succesfully created the GoLang clients")
 
 	requestMessageFS := fetchDataServicePB.FetchDataRequestMessage{
-		InputFile: INPUTfilename,
+		InputFile: request.InputFile,
 	}
 	DebugLogger.Println("Succesfully created a FetchDataRequestMessage")
-
-	// Create header to read the metadata that the response carries
-	// var headerFS, trailerFS metadata.MD // MEEP: Header has no information in it yet, this is filled by the server
 
 	// Make the gRPC service call
 	InfoLogger.Println("Making FetchData service call.")
@@ -120,9 +127,10 @@ func main() {
 		ErrorLogger.Println("Failed to make FetchData service call: ")
 		ErrorLogger.Println(errFS)
 		// ErrorLogger.Fatal(errFS)
+	} else {
+		DebugLogger.Println("Succesfully made service call to Python fetchDataServer.")
+		connFS.Close()
 	}
-	DebugLogger.Println("Succesfully made service call to Python fetchDataServer.")
-	connFS.Close()
 
 	requestMessagePS := prepareDataServicePB.PrepareRequestMessage{
 		IndexNumber:            responseMessageFS.IndexNumber,
@@ -196,14 +204,14 @@ func main() {
 		OriginalSog:           responseMessageFS.Sog,
 	}
 
-	switch MODELTYPE {
-	case "OPENWATER":
+	switch request.ModelType {
+	case 1: // OpenWater
 		requestMessageES.ModelType = estimateServicePB.ModelTypeEnum_OPENWATER
-	case "ICE":
+	case 2: // Ice
 		requestMessageES.ModelType = estimateServicePB.ModelTypeEnum_ICE
-	case "UNKNOWN":
+	case 0: // Unknown
 		requestMessageES.ModelType = estimateServicePB.ModelTypeEnum_OPENWATER
-	default:
+	default: // Default
 		requestMessageES.ModelType = estimateServicePB.ModelTypeEnum_OPENWATER
 	}
 
@@ -219,7 +227,11 @@ func main() {
 	DebugLogger.Println("Succesfully made service call to Python estimateServer.")
 	connPS.Close()
 
-	fmt.Println(responseMessageES.PowerEstimate[1]) // MEEP remove once you've done something with responseMEssageFS
+	responseMessage := serverPB.EstimateResponseMessage{
+		PowerEstimate: responseMessageES.PowerEstimate,
+	}
+
+	return &responseMessage, nil
 }
 
 // DEPRECATED
@@ -252,7 +264,7 @@ func SpinUpServices(interpreter []string, directories []string, filenames []stri
 	}
 }
 
-func CreatePythonServerConnection(port string, credentials credentials.TransportCredentials, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {
+func CreateServerConnection(port string, credentials credentials.TransportCredentials, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {
 	// This function takes a port address, credentials object, timeout, and an interceptor as an input, creates a connection to the server at the port adress and returns
 	// a secure gRPC connection with the specified interceptor
 

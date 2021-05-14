@@ -1,7 +1,8 @@
 syntax = "proto3";
 
-option go_package = "desktopGateway";
+option go_package = "desktopGateway/proto;desktopGateway";
 
+// Messages for the estimation service package
 message EstimationRequest {
     string bla = 1;
 }
@@ -11,10 +12,26 @@ message CostEstimationRespose {
 }
 
 message PowerEstimationResponse {
-    string blablabla = 1;
+    repeated float powerEstimate = 1;
 }
 
-service PowerEstimationServicePackage {
-    rpc CostEstimationSP(EstimationRequest) returns (stream CostEstimationRespose);
-    rpc powerEstimationSP(EstimationRequest) returns (stream PowerEstimationResponse);
+// Messages for the frontend login
+message LoginRequest {
+    string username = 1;
+    string hashedPassword = 2;
+}
+
+message LoginResponse {
+    string permissions = 1;
+}
+
+// Service calls for estimation service package
+service PowerEstimationServices {
+    rpc CostEstimationSP(EstimationRequest) returns (CostEstimationRespose);
+    rpc PowerEstimationSP(EstimationRequest) returns (PowerEstimationResponse);
+}
+
+// Service calls for login functionality
+service LoginService {
+    rpc Login(LoginRequest) returns (LoginResponse);
 }

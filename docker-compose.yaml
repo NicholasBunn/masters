@@ -1,0 +1,66 @@
+version: "3.8"
+
+services:
+    fetchdataservice:
+        build:
+            context: .
+            dockerfile: src/fetchDataService/Dockerfile
+        environment:
+            FETCHDATAHOST: fetchdataservice
+            PROMETHEUSHOST: prometheus
+            PUSHGATEWAYHOST: pushgateway
+        image: fetch_data_service
+        networks:
+            - southernOcean
+        ports:
+            - 50051:50051
+
+    preparedataservice:
+        build:
+            context: .
+            dockerfile: src/prepareDataService/Dockerfile
+        environment: 
+            PREPAREDATAHOST: preparedataservice
+            PROMETHEUSHOST: prometheus
+            PUSHGATEWAYHOST: pushgateway
+        image: prepare_data_service
+        networks: 
+            - southernOcean
+        ports: 
+            - 50052:50052
+
+    estimateservice:
+        build:
+            context: .
+            dockerfile: src/estimateService/Dockerfile
+        environment: 
+            ESTIMATEHOST: estimateservice
+            PROMETHEUSHOST: prometheus
+            PUSHGATEWAYHOST: pushgateway
+        image: estimate_service
+        networks: 
+            - southernOcean
+        ports: 
+            - 50053:50053
+
+    pushgateway:
+        image: prom/pushgateway
+        networks:
+           - southernOcean
+        ports:
+            - 9091:9091
+
+    prometheus:
+        build:
+            context: .
+            dockerfile: src/prometheus/Dockerfile
+        image: my_prometheus
+        networks:
+            - southernOcean
+        ports:
+          - 9090:9090
+        command: --web.enable-lifecycle  --config.file=/etc/prometheus/prometheus.yml
+
+networks:
+    southernOcean:
+        

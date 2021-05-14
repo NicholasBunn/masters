@@ -1,0 +1,8 @@
+requests
+pandas
+keras==2.4.3
+tensorflow==2.4.1
+grpcio-tools
+grpcio
+grpc_interceptor
+prometheus_client

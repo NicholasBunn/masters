@@ -18,9 +18,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='estimateAPI.proto',
   package='estimate',
   syntax='proto3',
-  serialized_options=None,
+  serialized_options=b'Z:github.com/nicholasbunn/masters/src/fetchDataService/proto',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x11\x65stimateAPI.proto\x12\x08\x65stimate\"\x91\x03\n\x16\x45stimateRequestMessage\x12\x1d\n\x15port_prop_motor_speed\x18\x01 \x03(\x02\x12\x1d\n\x15stbd_prop_motor_speed\x18\x02 \x03(\x02\x12\x1c\n\x14propeller_pitch_port\x18\x03 \x03(\x02\x12\x1c\n\x14propeller_pitch_stbd\x18\x04 \x03(\x02\x12\x0b\n\x03sog\x18\x05 \x03(\x02\x12\x1f\n\x17wind_direction_relative\x18\x06 \x03(\x02\x12\x12\n\nwind_speed\x18\x07 \x03(\x02\x12\x17\n\x0f\x62\x65\x61ufort_number\x18\x08 \x03(\x02\x12\x16\n\x0ewave_direction\x18\t \x03(\x02\x12\x13\n\x0bwave_length\x18\n \x03(\x02\x12\x18\n\x10motor_power_port\x18\x0b \x03(\x02\x12\x18\n\x10motor_power_stbd\x18\x0c \x03(\x02\x12\x14\n\x0coriginal_sog\x18\r \x03(\x02\x12+\n\nmodel_type\x18\x0e \x01(\x0e\x32\x17.estimate.ModelTypeEnum\"b\n\x17\x45stimateResponseMessage\x12\x16\n\x0epower_estimate\x18\x01 \x03(\x02\x12\x14\n\x0cpower_actual\x18\x02 \x03(\x02\x12\x19\n\x11speed_over_ground\x18\x03 \x03(\x02*4\n\rModelTypeEnum\x12\x0b\n\x07UNKNOWN\x10\x00\x12\r\n\tOPENWATER\x10\x01\x12\x07\n\x03ICE\x10\x02\x32l\n\rEstimatePower\x12[\n\x14\x45stimatePowerService\x12 .estimate.EstimateRequestMessage\x1a!.estimate.EstimateResponseMessageb\x06proto3'
+  serialized_pb=b'\n\x11\x65stimateAPI.proto\x12\x08\x65stimate\"\x91\x03\n\x16\x45stimateRequestMessage\x12\x1d\n\x15port_prop_motor_speed\x18\x01 \x03(\x02\x12\x1d\n\x15stbd_prop_motor_speed\x18\x02 \x03(\x02\x12\x1c\n\x14propeller_pitch_port\x18\x03 \x03(\x02\x12\x1c\n\x14propeller_pitch_stbd\x18\x04 \x03(\x02\x12\x0b\n\x03sog\x18\x05 \x03(\x02\x12\x1f\n\x17wind_direction_relative\x18\x06 \x03(\x02\x12\x12\n\nwind_speed\x18\x07 \x03(\x02\x12\x17\n\x0f\x62\x65\x61ufort_number\x18\x08 \x03(\x02\x12\x16\n\x0ewave_direction\x18\t \x03(\x02\x12\x13\n\x0bwave_length\x18\n \x03(\x02\x12\x18\n\x10motor_power_port\x18\x0b \x03(\x02\x12\x18\n\x10motor_power_stbd\x18\x0c \x03(\x02\x12\x14\n\x0coriginal_sog\x18\r \x03(\x02\x12+\n\nmodel_type\x18\x0e \x01(\x0e\x32\x17.estimate.ModelTypeEnum\"b\n\x17\x45stimateResponseMessage\x12\x16\n\x0epower_estimate\x18\x01 \x03(\x02\x12\x14\n\x0cpower_actual\x18\x02 \x03(\x02\x12\x19\n\x11speed_over_ground\x18\x03 \x03(\x02*4\n\rModelTypeEnum\x12\x0b\n\x07UNKNOWN\x10\x00\x12\r\n\tOPENWATER\x10\x01\x12\x07\n\x03ICE\x10\x02\x32l\n\rEstimatePower\x12[\n\x14\x45stimatePowerService\x12 .estimate.EstimateRequestMessage\x1a!.estimate.EstimateResponseMessageB<Z:github.com/nicholasbunn/masters/src/fetchDataService/protob\x06proto3'
 )
 
 _MODELTYPEENUM = _descriptor.EnumDescriptor(
@@ -249,6 +249,7 @@ EstimateResponseMessage = _reflection.GeneratedProtocolMessageType('EstimateResp
 _sym_db.RegisterMessage(EstimateResponseMessage)
 
 
+DESCRIPTOR._options = None
 
 _ESTIMATEPOWER = _descriptor.ServiceDescriptor(
   name='EstimatePower',

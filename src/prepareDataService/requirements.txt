@@ -1,0 +1,8 @@
+requests
+numpy
+pandas
+sklearn
+grpcio-tools
+grpcio
+grpc_interceptor
+prometheus_client

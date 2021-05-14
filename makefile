@@ -6,13 +6,18 @@
 
 	
 gen:
+	# ________GO PROTOS________
 	protoc -I src/ --go_out=src --go-grpc_out=src src/powerEstimationSP/proto/powerEstimationAPI.proto
+	protoc -I src/ --go_out=src --go-grpc_out=src src/desktopGateway/proto/desktopGatewayAPI.proto
 
+	# ________PYTHON PROTOS________
 	# Add a "proto." in line 5 of the _grpc file for all the below Python commands
 	python3 -m grpc_tools.protoc -I=src/fetchDataService/proto --python_out=src/fetchDataService/proto --grpc_python_out=src/fetchDataService/proto src/fetchDataService/proto/fetchDataAPI.proto
 	protoc -I src/ --go_out=src --go-grpc_out=src src/fetchDataService/proto/fetchDataAPI.proto
+
 	python3 -m grpc_tools.protoc -I=src/estimateService/proto --python_out=src/estimateService/proto --grpc_python_out=src/estimateService/proto src/estimateService/proto/estimateAPI.proto
 	protoc -I src/ --go_out=src --go-grpc_out=src src/estimateService/proto/estimateAPI.proto
+
 	python3 -m grpc_tools.protoc -I=src/prepareDataService/proto --python_out=src/prepareDataService/proto --grpc_python_out=src/prepareDataService/proto src/prepareDataService/proto/prepareDataAPI.proto
 	protoc -I src/ --go_out=src --go-grpc_out=src src/prepareDataService/proto/prepareDataAPI.proto
 	
@@ -30,8 +35,14 @@ server2:
 server3:
 	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/masters/src/estimateService/estimateServer.py
 
-client:
+SP1:
 	go run src/powerEstimationSP/powerEstimationSP.go
+
+gateway1:
+	go run src/desktopGateway/desktopGateway.go
+
+frontend1:
+	go run src/frontend/frontendProxy.go
 
 test:
 	go test ./...

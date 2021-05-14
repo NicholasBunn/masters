@@ -1,15 +1,18 @@
 #Package imports
 import sys
+import os
+import logging
+from concurrent import futures
 import grpc
 import proto.fetchDataAPI_pb2 as fetch_data_api_pb2
 import proto.fetchDataAPI_pb2_grpc as fetch_data_api_pb2_grpc
 import interceptors.fetchDataServiceInterceptor as fetchDataInterceptor
-import logging
 import pandas as pd
-from concurrent import futures
+
+# ToDo: Look at how to get/distribute TLS certs to containers, maybe have a certification service in its own container?
 
 def importData(excelFileName):
-	# This function receives a filename ("filaname.xlsx") as an input, reads it into a Pandas dataframe, and returns the generated dataFrame
+	# This function receives a filename ("filename.xlsx") as an input, reads it into a Pandas dataframe, and returns the generated dataFrame
 
 	# Import ship and weather data for estimation
 	dataSet = pd.read_excel(excelFileName, engine = "openpyxl") # This is a dataFrame
@@ -107,7 +110,7 @@ def serve():
 
 	activeInterceptors = [fetchDataInterceptor.MetricInterceptor()] # List containing the interceptors to be chained
 
-	# Create a server to serve calls
+	# Create a server to serve calls in its own thread
 	server = grpc.server(
 		futures.ThreadPoolExecutor(max_workers=10),
 		interceptors = activeInterceptors
@@ -118,11 +121,11 @@ def serve():
 
 	# Create a secure (TLS encrypted) connection on port 50052
 	creds = loadTLSCredentials()
-	server.add_secure_port("[::]:50051", creds)
+	fetchDataHost = os.getenv(key = "FETCHDATAHOST", default = "localhost") # Receives the hostname from the environmental variables (for Docker network), or defaults to localhost for local testing
+	server.add_secure_port(f"{fetchDataHost}:50051", creds)
 
 	# Start server and listen for calls on the specified port
 	server.start()
-
 	logger.info('Server started on port 50051')
 	
 	# Defer termination for a 'persistent' service
@@ -138,7 +141,8 @@ if __name__ == '__main__':
 	# Set the fields to be included in the logs
 	formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(module)s:%(funcName)s:%(message)s')
 
-	fileHandler = logging.FileHandler("program logs/"+serviceName+".log")
+	# Create/set the file in which the log will be stored
+	fileHandler = logging.FileHandler("program logs/" + serviceName + ".log")
 	fileHandler.setFormatter(formatter)
 
 	logger.addHandler(fileHandler)
