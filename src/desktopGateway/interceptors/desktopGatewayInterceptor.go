@@ -5,15 +5,12 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/gob"
-	"errors"
 	"log"
 	"os"
 	"strings"
-	"time"
 
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 
 	// "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -29,8 +26,8 @@ var (
 
 // This isn't actually being used right now, reconsider how you're implementing the client-side interceptor
 type ClientMetricStruct struct {
-	// This struct represents a collection of metrics to be registered on a
-	// Prometheus metrics registry.
+	/* This struct represents a collection of client-side metrics to be registered on a
+	Prometheus metrics registry */
 	clientRequestCounter      *prometheus.Counter
 	clientResponseCounter     *prometheus.Counter
 	clientRequestMessageSize  *prometheus.Histogram
@@ -38,7 +35,11 @@ type ClientMetricStruct struct {
 }
 
 type ServerMetricStruct struct {
-	serverCallCounter *prometheus.Counter
+	/* This struct represents a collection of server-side metrics to be reqistered on a
+	Prometheus metrics registry */
+	serverCallCounter    *prometheus.Counter
+	serverLastCallTime   *prometheus.Gauge
+	serverRequestLatency *prometheus.Histogram
 }
 
 func init() {
@@ -56,31 +57,16 @@ func init() {
 	ErrorLogger = log.New(file, "ERROR: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 }
 
-func GetMessageSize(val interface{}) (int, error) {
-	// This function takes in an interface for a gRPC message and returns its
-	// size in bytes.
-	var buff bytes.Buffer
-
-	encoder := gob.NewEncoder(&buff)
-	err := encoder.Encode(val)
-	if err != nil {
-		// ToDo Log error
-		return 0, err
-	}
-
-	return binary.Size(buff.Bytes()), nil
-}
-
-// Client side
 func (metr *ClientMetricStruct) ClientMetrics(ctx context.Context, method string, req interface{}, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-	InfoLogger.Println("Starting interceptor method")
+	// Client side interceptor, to be attached to all client connections
+	InfoLogger.Println("Starting client interceptor method")
 
 	// Run gRPC call here
 	err := invoker(ctx, method, req, reply, cc, opts...)
 
 	requestSize := prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name: "request_size",
-		Help: "The size (in bytes) of the response",
+		Help: "The size (in bytes) of the request",
 	})
 	responseSize := prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name: "response_size",
@@ -99,7 +85,7 @@ func (metr *ClientMetricStruct) ClientMetrics(ctx context.Context, method string
 		Collector(responseSize).
 		Grouping("Service", strings.Split(method, "/")[2]).
 		Push(); err != nil {
-		ErrorLogger.Println("Could not push response message size to Pushgateway:", err)
+		ErrorLogger.Println("Could not push response message size to Pushgateway: \n", err)
 	} else {
 		DebugLogger.Println("Succesfully pushed metrics")
 	}
@@ -107,22 +93,33 @@ func (metr *ClientMetricStruct) ClientMetrics(ctx context.Context, method string
 	return err
 }
 
-// Server side
 func (metr *ServerMetricStruct) ServerMetrics(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (response interface{}, err error) {
-	// metr.clientCallCounter++
+	// Server-side interceptor, to be attached to all server connections
+	InfoLogger.Println("Starting server interceptor method")
 
-	meta, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, errors.New("could not grab metadata from context")
-	}
+	// ________INCREMENT CALL COUNTER________
 
-	// Set ping-counts into the current ping value
-	// meta.Set("call-count", string(metr.clientCallCounter))
+	// ________SET LAST CALL TIME________
 
-	meta.Set("start-time", time.Now().Format(time.UnixDate))
-	// Metadata is sent on its own, so we need to send the header. There is also something called Trailer
-	grpc.SendHeader(ctx, meta)
+	// ________SET START TIME________
 
 	// Run gRPC call here
 	return handler(ctx, req)
+
+	// ________SET END TIME________
+}
+
+func GetMessageSize(val interface{}) (int, error) {
+	// This function takes in an interface for a gRPC message and returns its
+	// size in bytes.
+	var buff bytes.Buffer
+
+	encoder := gob.NewEncoder(&buff)
+	err := encoder.Encode(val)
+	if err != nil {
+		// ToDo Log error
+		return 0, err
+	}
+
+	return binary.Size(buff.Bytes()), nil
 }
