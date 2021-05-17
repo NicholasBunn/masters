@@ -52,7 +52,7 @@ const (
 func init() {
 	// Set up logger
 	// If the file doesn't exist, create it or append to the file
-	file, err := os.OpenFile("program logs/"+"logs.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	file, err := os.OpenFile("program logs/"+"powerEstimationSP.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -67,6 +67,13 @@ func init() {
 
 func main() {
 	InfoLogger.Println("Started GoLang Aggregator")
+	// ________LOAD TLS CREDENTIALS________
+	creds, err := loadTLSCredentials()
+	if err != nil {
+		ErrorLogger.Printf("Error loading TLS credentials")
+	} else {
+		DebugLogger.Println("Succesfully loaded TLS certificates")
+	}
 
 	// Create a listener on the specified tcp port
 	listener, err := net.Listen("tcp", addrMyself)
@@ -76,7 +83,9 @@ func main() {
 	InfoLogger.Println("Listening on port: ", addrMyself)
 
 	// Create a gRPC server object
-	estimationServer := grpc.NewServer()
+	estimationServer := grpc.NewServer(
+		grpc.Creds(creds),
+	)
 	// Attach the power estimation service to the server
 	serverPB.RegisterPowerEstimationServicePackageServer(estimationServer, &server{})
 	DebugLogger.Println("Succesfully registered Power Estimation Service Package to the server")
@@ -92,23 +101,23 @@ type server struct {
 }
 
 func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.ServicePackageRequestMessage) (*serverPB.EstimateResponseMessage, error) {
-	// InfoLogger.Println("Received Power Estimator service call")
-	// // Load in credentials for the servers
-	// creds, err := loadTLSCredentials()
-	// if err != nil {
-	// 	ErrorLogger.Printf("Error loading TLS credentials")
-	// } else {
-	// 	DebugLogger.Println("Succesfully loaded TLS certificates")
-	// }
+	InfoLogger.Println("Received Power Estimator service call")
+	// Load in credentials for the servers
+	creds, err := loadTLSCredentials()
+	if err != nil {
+		ErrorLogger.Printf("Error loading TLS credentials")
+	} else {
+		DebugLogger.Println("Succesfully loaded TLS certificates")
+	}
 
 	callCounterFS := interceptors.ClientMetricStruct{}
-	connFS := CreateInsecureServerConnection(addrFS, timeoutDuration, callCounterFS.ClientMetrics)
+	connFS := CreateSecureServerConnection(addrFS, creds, timeoutDuration, callCounterFS.ClientMetrics)
 
 	callCounterPS := interceptors.ClientMetricStruct{}
-	connPS := CreateInsecureServerConnection(addrPS, timeoutDuration, callCounterPS.ClientMetrics)
+	connPS := CreateSecureServerConnection(addrPS, creds, timeoutDuration, callCounterPS.ClientMetrics)
 
 	callCounterES := interceptors.ClientMetricStruct{}
-	connES := CreateInsecureServerConnection(addrES, timeoutDuration, callCounterES.ClientMetrics)
+	connES := CreateSecureServerConnection(addrES, creds, timeoutDuration, callCounterES.ClientMetrics)
 
 	/* Create the client and pass the connection made above to it. After the client has been
 	created, we create the gRPC request */
@@ -283,7 +292,7 @@ func CreateInsecureServerConnection(port string, timeout int, interceptor grpc.U
 	return conn
 }
 
-func CreateServerConnection(port string, credentials credentials.TransportCredentials, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {
+func CreateSecureServerConnection(port string, credentials credentials.TransportCredentials, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {
 	// This function takes a port address, credentials object, timeout, and an interceptor as an input, creates a connection to the server at the port adress and returns
 	// a secure gRPC connection with the specified interceptor
 

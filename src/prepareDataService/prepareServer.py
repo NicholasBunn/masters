@@ -161,10 +161,9 @@ def serve():
 	power_estimation_pb2_grpc.add_PrepareDataServicer_to_server(PrepareDataServicer(), server)
 
 	# Create a secure (TLS encrypted) connection on port 50052
-	# creds = loadTLSCredentials()
+	creds = loadTLSCredentials()
 	prepareDataHost = os.getenv(key = "PREPAREDATAHOST", default = "localhost") # Receives the hostname from the environmental variables (for Docker network), or defaults to localhost for local testing
-	# server.add_secure_port(f"{prepareDataHost}:50052", creds)
-	server.add_insecure_port(f"{prepareDataHost}:50052")
+	server.add_secure_port(f"{prepareDataHost}:50052", creds)
 
 	# Start server and listen for calls on the specified port
 	server.start()

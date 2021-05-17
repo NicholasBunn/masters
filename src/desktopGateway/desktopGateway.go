@@ -21,6 +21,10 @@ import (
 )
 
 var (
+	// Addresses (To be passed in a config file)
+	addrMyself       = os.Getenv("DESKTOPGATEWAYHOST") + ":50201"
+	addrEstimationSP = os.Getenv("POWERESTIMATIONHOST") + ":50101"
+
 	// Logging stuff
 	DebugLogger   *log.Logger
 	InfoLogger    *log.Logger
@@ -29,10 +33,6 @@ var (
 )
 
 const (
-	// Addresses (To be passed in a config file)
-	addrMyself       = "localhost:50201"
-	addrEstimationSP = "localhost:50101"
-
 	// Timeouts (to be passed in a config file)
 	timeoutDuration     = 5 // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
 	callTimeoutDuration = 15 * time.Second
@@ -70,7 +70,7 @@ type estimationServer struct {
 }
 
 func main() {
-	// // Load in credentials
+	// ________LOAD TLS CREDENTIALS________
 	// creds, err := loadTLSCredentials()
 	// if err != nil {
 	// 	ErrorLogger.Printf("Error loading TLS credentials")
@@ -80,7 +80,6 @@ func main() {
 
 	// ________RECEIVE REQUEST________
 	// Create a listener on the specified tcp port
-	DebugLogger.Println("TP")
 	listener, err := net.Listen("tcp", addrMyself)
 	if err != nil {
 		ErrorLogger.Fatalf("Failed to listen on port %v: \n%v", addrMyself, err)
@@ -88,7 +87,9 @@ func main() {
 	InfoLogger.Println("Listening on port: ", addrMyself)
 
 	// Create a grpc server object
-	gatewayServer := grpc.NewServer()
+	gatewayServer := grpc.NewServer(
+	// grpc.Creds(creds),
+	)
 	// Attach the power estimation service package offering to the server
 	serverPB.RegisterPowerEstimationServicesServer(gatewayServer, &estimationServer{})
 	serverPB.RegisterLoginServiceServer(gatewayServer, &loginServer{})
@@ -120,9 +121,18 @@ func (s *estimationServer) CostEstimationSP(ctx context.Context, request *server
 }
 
 func (s *estimationServer) PowerEstimationSP(ctx context.Context, request *serverPB.EstimationRequest) (*serverPB.PowerEstimationResponse, error) {
+	InfoLogger.Println("Received Power Estimator service call")
+	// Load in credentials for the servers
+	creds, err := loadTLSCredentials()
+	if err != nil {
+		ErrorLogger.Printf("Error loading TLS credentials")
+	} else {
+		DebugLogger.Println("Succesfully loaded TLS certificates")
+	}
+
 	// Create a connection over the specified tcp port
 	callCounter := interceptors.ClientMetricStruct{}
-	connEstimationSP := CreateInsecureServerConnection(addrEstimationSP, timeoutDuration, callCounter.ClientMetrics)
+	connEstimationSP := CreateSecureServerConnection(addrEstimationSP, creds, timeoutDuration, callCounter.ClientMetrics)
 
 	/* Create the client and pass the connection made above to it. After thje client has been
 	created, we create the gRPC request */
@@ -172,7 +182,16 @@ func CreateSecureServerConnection(port string, credentials credentials.Transport
 	// This function takes a port address, credentials object, timeout, and an interceptor as an input, creates a connection to the server at the port adress and returns
 	// a secure gRPC connection with the specified interceptor
 
-	conn, err := grpc.Dial(port, grpc.WithTransportCredentials(credentials), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
+	ctx, cancel := context.WithTimeout(context.Background(), (time.Duration(timeoutDuration) * time.Second))
+	defer cancel()
+
+	conn, err := grpc.DialContext(
+		ctx,
+		port,
+		grpc.WithTransportCredentials(credentials),
+		grpc.WithBlock(), grpc.WithUnaryInterceptor(interceptor),
+	)
+	// conn, err := grpc.Dial(port, grpc.WithTransportCredentials(credentials), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
 	if err != nil {
 		ErrorLogger.Println("Failed to create connection to Python server on port: " + port)
 		ErrorLogger.Println(err)
@@ -196,7 +215,7 @@ func loadTLSCredentials() (credentials.TransportCredentials, error) {
 	// Load the server CA's certificates
 	certificatePool := x509.NewCertPool()
 	if !certificatePool.AppendCertsFromPEM(pemServerCA) {
-		return nil, fmt.Errorf("Failed to add the server CA's certificate")
+		return nil, fmt.Errorf("failed to add the server CA's certificate")
 	}
 
 	// Load the client's certificate and private key

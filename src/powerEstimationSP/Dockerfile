@@ -24,7 +24,7 @@ COPY src/fetchDataService/proto src/fetchDataService/proto
 COPY src/prepareDataService/proto src/prepareDataService/proto
 COPY src/estimateService/proto src/estimateService/proto
 
-WORKDIR $GOPATH/src/github.com/nicholasbunn/masters//src/powerEstimationSP/
+WORKDIR $GOPATH/src/github.com/nicholasbunn/masters/src/powerEstimationSP/
 
 # Fetch the dependecies
 RUN go mod tidy
