@@ -312,7 +312,8 @@ func CreateSecureServerConnection(port string, credentials credentials.Transport
 		ctx,
 		port,
 		grpc.WithTransportCredentials(credentials),
-		grpc.WithBlock(), grpc.WithUnaryInterceptor(interceptor),
+		grpc.WithBlock(),
+		grpc.WithUnaryInterceptor(interceptor),
 	)
 	// conn, err := grpc.Dial(port, grpc.WithTransportCredentials(credentials), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
 	if err != nil {
@@ -334,7 +335,9 @@ func CreateInsecureServerConnection(port string, timeout int, interceptor grpc.U
 	conn, err := grpc.DialContext(
 		ctx,
 		port,
-		grpc.WithBlock(), grpc.WithUnaryInterceptor(interceptor),
+		grpc.WithBlock(),
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(interceptor),
 	)
 	// conn, err := grpc.Dial(port, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
 	if err != nil {

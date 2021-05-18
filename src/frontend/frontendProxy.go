@@ -32,21 +32,21 @@ func main() {
 	callCounter := interceptors.ClientMetricStruct{}
 	connDesktopGateway := CreateInsecureServerConnection(addrDesktopGateway, timeoutDuration, callCounter.ClientMetrics)
 
-	clientDesktopGateway := desktopPB.NewPowerEstimationServicesClient(connDesktopGateway)
+	// clientDesktopGateway := desktopPB.NewPowerEstimationServicesClient(connDesktopGateway)
 	clientLoginDesktopGateway := desktopPB.NewLoginServiceClient(connDesktopGateway)
 
-	requestMessage := desktopPB.EstimationRequest{
-		Bla: "blank",
-	}
+	// requestMessage := desktopPB.EstimationRequest{
+	// 	Bla: "blank",
+	// }
 
 	desktopContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration)
 
-	response, err := clientDesktopGateway.PowerEstimationSP(desktopContext, &requestMessage)
-	if err != nil {
-		fmt.Println("Failed")
-	} else {
-		fmt.Println(response.PowerEstimate[1])
-	}
+	// response, err := clientDesktopGateway.PowerEstimationSP(desktopContext, &requestMessage)
+	// if err != nil {
+	// 	fmt.Println("Failed")
+	// } else {
+	// 	fmt.Println(response.PowerEstimate[1])
+	// }
 
 	loginRequest := desktopPB.LoginRequest{
 		Username:       "devUsername",

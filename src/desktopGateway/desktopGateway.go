@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	// Proto packages
+	authenticationPB "github.com/nicholasbunn/masters/src/authenticationService/proto"
 	serverPB "github.com/nicholasbunn/masters/src/desktopGateway/proto"
 	estimationPB "github.com/nicholasbunn/masters/src/powerEstimationSP/proto"
 
@@ -26,8 +27,9 @@ import (
 
 var (
 	// Addresses (To be passed in a config file)
-	addrMyself       = os.Getenv("DESKTOPGATEWAYHOST") + ":50201"
-	addrEstimationSP = os.Getenv("POWERESTIMATIONHOST") + ":50101"
+	addrMyself                = os.Getenv("DESKTOPGATEWAYHOST") + ":50201"
+	addrEstimationSP          = os.Getenv("POWERESTIMATIONHOST") + ":50101"
+	addrAuthenticationService = "localhost:50401"
 
 	// Logging stuff
 	DebugLogger   *log.Logger
@@ -79,8 +81,10 @@ func main() {
 	}
 	InfoLogger.Println("Listening on port: ", addrMyself)
 
+	authInterceptor := interceptors.ServerAuthStruct{}
 	// Create a gRPC server object
 	gatewayServer := grpc.NewServer(
+		grpc.UnaryInterceptor(authInterceptor.ServerAuthInterceptor),
 	// grpc.Creds(creds),
 	)
 	// Attach the power estimation service package offering to the server
@@ -88,7 +92,7 @@ func main() {
 	DebugLogger.Println("Succesfully registered Power Estimation Services to the server")
 	// Attach the Login service offering to the server
 	serverPB.RegisterLoginServiceServer(gatewayServer, &loginServer{})
-	DebugLogger.Println("Succesfullt registered Login Service to the server")
+	DebugLogger.Println("Succesfully registered Login Service to the server")
 	// Start the server
 	if err := gatewayServer.Serve(listener); err != nil {
 		ErrorLogger.Fatalf("Failed to expose service: \n%v", err)
@@ -107,13 +111,47 @@ type estimationServer struct {
 }
 
 func (s *loginServer) Login(ctx context.Context, request *serverPB.LoginRequest) (*serverPB.LoginResponse, error) {
+	InfoLogger.Println("Received Login service call")
 	// ________CONNECT TO USER DATABASE________
 
-	// ________SEARCH FOR/VERIFY USER WITH PROVIDED CREDENTIALS________
+	// ________SEARCH FOR/VERIFY USER WITH PROVIDED CREDENTIALS_______
+
+	// Create a secure connection to the server
+	callCounter := interceptors.ClientMetricStruct{}
+	connAuthenticationService, err := CreateInsecureServerConnection(addrAuthenticationService, timeoutDuration, callCounter.ClientMetricInterceptor)
+	if err != nil {
+		return nil, err
+	}
+
+	/* Create the client and pass the connection made above to it. After the client
+	has been created, we create the gRPC requests */
+	InfoLogger.Println("Creating clients")
+	clientAuthenticationPB := authenticationPB.NewAuthenticationServiceClient(connAuthenticationService)
+	DebugLogger.Println("Succesfully created the client")
+
+	// Create the request message for the power estimation service package
+	requestMessageAuthenticationService := authenticationPB.LoginAuthRequest{
+		Username: "admin1",
+		Password: "secret",
+	}
+
+	// Make the gRPC service call
+	InfoLogger.Println("Making Login service call")
+	loginContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration)
+	// Invoke the power estimation service package
+	responseLogin, err := clientAuthenticationPB.LoginAuth(loginContext, &requestMessageAuthenticationService)
+	// Handle errors, if any, otherwise, close the connection
+	if err != nil {
+		ErrorLogger.Println("Failed to make the login service call: ")
+		return nil, err
+	} else {
+		DebugLogger.Println("Succesfully made service call to authentication service.")
+		connAuthenticationService.Close()
+	}
 
 	// ________RETURN PERMISSIONS/RESPONSE________
 	responseMessage := serverPB.LoginResponse{
-		Permissions: "pass",
+		Permissions: responseLogin.AccessToken,
 	}
 
 	return &responseMessage, nil
@@ -140,7 +178,7 @@ func (s *estimationServer) PowerEstimationSP(ctx context.Context, request *serve
 
 	// Create a secure connection to the server
 	callCounter := interceptors.ClientMetricStruct{}
-	connEstimationSP, err := CreateSecureServerConnection(addrEstimationSP, creds, timeoutDuration, callCounter.ClientMetrics)
+	connEstimationSP, err := CreateSecureServerConnection(addrEstimationSP, creds, timeoutDuration, callCounter.ClientMetricInterceptor)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +259,8 @@ func CreateSecureServerConnection(port string, credentials credentials.Transport
 		ctx,
 		port,
 		grpc.WithTransportCredentials(credentials),
-		grpc.WithBlock(), grpc.WithUnaryInterceptor(interceptor),
+		grpc.WithBlock(),
+		grpc.WithUnaryInterceptor(interceptor),
 	)
 	// conn, err := grpc.Dial(port, grpc.WithTransportCredentials(credentials), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
 	if err != nil {
@@ -243,7 +282,9 @@ func CreateInsecureServerConnection(port string, timeout int, interceptor grpc.U
 	conn, err := grpc.DialContext(
 		ctx,
 		port,
-		grpc.WithBlock(), grpc.WithUnaryInterceptor(interceptor),
+		grpc.WithBlock(),
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(interceptor),
 	)
 	// conn, err := grpc.Dial(port, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
 	if err != nil {

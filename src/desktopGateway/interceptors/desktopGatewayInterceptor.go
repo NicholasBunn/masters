@@ -57,7 +57,7 @@ func init() {
 	ErrorLogger = log.New(file, "ERROR: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 }
 
-func (metr *ClientMetricStruct) ClientMetrics(ctx context.Context, method string, req interface{}, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+func (metr *ClientMetricStruct) ClientMetricInterceptor(ctx context.Context, method string, req interface{}, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 	// Client side interceptor, to be attached to all client connections
 	InfoLogger.Println("Starting client interceptor method")
 
@@ -93,7 +93,7 @@ func (metr *ClientMetricStruct) ClientMetrics(ctx context.Context, method string
 	return err
 }
 
-func (metr *ServerMetricStruct) ServerMetrics(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (response interface{}, err error) {
+func (metr *ServerMetricStruct) ServerMetricInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	// Server-side interceptor, to be attached to all server connections
 	InfoLogger.Println("Starting server interceptor method")
 
