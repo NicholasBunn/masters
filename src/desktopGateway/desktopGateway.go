@@ -13,6 +13,9 @@ import (
 	"strings"
 	"time"
 
+	// My packages
+	authentication "github.com/nicholasbunn/masters/src/authenticationStuff"
+
 	// gRPC packages
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
@@ -21,7 +24,6 @@ import (
 
 	// Proto packages
 	authenticationPB "github.com/nicholasbunn/masters/src/authenticationService/proto"
-	authentication "github.com/nicholasbunn/masters/src/authenticationStuff"
 	serverPB "github.com/nicholasbunn/masters/src/desktopGateway/proto"
 	estimationPB "github.com/nicholasbunn/masters/src/powerEstimationSP/proto"
 
