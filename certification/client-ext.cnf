@@ -1,1 +1,1 @@
-subjectAltName=DNS:localhost,IP:127.0.0.1
+subjectAltName=DNS:localhost,DNS:powerestimationsp, DNS:desktopgateway,IP:127.0.0.1

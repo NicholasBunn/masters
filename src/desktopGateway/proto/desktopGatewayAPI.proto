@@ -18,11 +18,12 @@ message PowerEstimationResponse {
 // Messages for the frontend login
 message LoginRequest {
     string username = 1;
-    string hashedPassword = 2;
+    string password = 2;
 }
 
 message LoginResponse {
     string permissions = 1;
+    string access_token = 2;
 }
 
 // Service calls for estimation service package

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option go_package = "authenticationService/proto;authenticationService";
+
+message LoginAuthRequest {
+    string username = 1;
+    string password = 2;
+}
+
+message LoginAuthResponse {
+    string permissions = 1;
+    string access_token = 2;
+}
+
+service AuthenticationService {
+    rpc LoginAuth(LoginAuthRequest) returns (LoginAuthResponse) {};
+}

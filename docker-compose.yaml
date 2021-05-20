@@ -1,6 +1,7 @@
 version: "3.8"
 
 services:
+    # 500xx Microservices
     fetchdataservice:
         build:
             context: .
@@ -42,6 +43,49 @@ services:
             - southernOcean
         ports: 
             - 50053:50053
+
+    # 501xx Aggregators
+    powerestimationsp:
+        build: 
+            context: .
+            dockerfile: src/powerEstimationSP/Dockerfile
+        environment: 
+            POWERESTIMATIONHOST: powerestimationsp
+            FETCHHOST: fetchdataservice
+            PREPAREHOST: preparedataservice
+            ESTIMATEHOST: estimateservice
+            PROMETHEUSHOST: prometheus
+            PUSHGATEWAYHOST: pushgateway
+        image: power_estimation_sp
+        networks: 
+            - southernOcean
+        ports: 
+            - 50101:50101
+
+    # 502xx Gateways
+    desktopgateway:
+        build: 
+            context: .
+            dockerfile: src/desktopGateway/Dockerfile
+        environment: 
+            DESKTOPGATEWAYHOST: desktopgateway
+            POWERESTIMATIONHOST: powerestimationsp
+            PROMETHEUSHOST: prometheus
+            PUSHGATEWAYHOST: pushgateway
+        image: desktop_gateway
+        networks: 
+            - southernOcean
+        ports: 
+            - 50201:50201
+
+    # Envoy proxy
+    envoyproxy:
+        build:
+            context: .
+            dockerfile: src/envoy/Dockerfile
+        image: envoy_proxy
+        ports: 
+            - 8080:8080
 
     pushgateway:
         image: prom/pushgateway

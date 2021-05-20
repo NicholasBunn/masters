@@ -9,6 +9,7 @@ gen:
 	# ________GO PROTOS________
 	protoc -I src/ --go_out=src --go-grpc_out=src src/powerEstimationSP/proto/powerEstimationAPI.proto
 	protoc -I src/ --go_out=src --go-grpc_out=src src/desktopGateway/proto/desktopGatewayAPI.proto
+	protoc -I src/ --go_out=src --go-grpc_out=src src/authenticationService/proto/authenticationServiceAPI.proto
 
 	# ________PYTHON PROTOS________
 	# Add a "proto." in line 5 of the _grpc file for all the below Python commands
@@ -43,6 +44,9 @@ gateway1:
 
 frontend1:
 	go run src/frontend/frontendProxy.go
+
+auth:
+	go run src/authenticationService/authenticationService.go
 
 test:
 	go test ./...

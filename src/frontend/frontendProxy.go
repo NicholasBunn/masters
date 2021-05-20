@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	"google.golang.org/grpc"
+
 	desktopPB "github.com/nicholasbunn/masters/src/desktopGateway/proto"
 	"github.com/nicholasbunn/masters/src/frontend/interceptors"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -24,22 +26,38 @@ const (
 )
 
 func main() {
-	// loginRequest := desktopPB.LoginRequest{
-	// 	Username:       "devUsername",
-	// 	HashedPassword: "HashedDevPassword",
-	// }
+	metricInterceptor := interceptors.ClientMetricStruct{}
+	authInterceptor := interceptors.ClientAuthStruct{}
+	interceptorChain := grpc_middleware.ChainUnaryClient(
+		metricInterceptor.ClientMetricInterceptor,
+		authInterceptor.ClientAuthInterceptor,
+	)
 
-	callCounter := interceptors.ClientMetricStruct{}
-	connDesktopGateway := CreateInsecureServerConnection(addrDesktopGateway, timeoutDuration, callCounter.ClientMetrics)
+	connDesktopGateway, err := CreateInsecureServerConnection(addrDesktopGateway, timeoutDuration, interceptorChain)
 
-	clientDesktopGateway := desktopPB.NewPowerEstimationServicesClient(connDesktopGateway)
 	clientLoginDesktopGateway := desktopPB.NewLoginServiceClient(connDesktopGateway)
+
+	desktopContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration)
+
+	loginRequest := desktopPB.LoginRequest{
+		Username: "guest1",
+		Password: "myPassword",
+	}
+
+	newResponse, newErr := clientLoginDesktopGateway.Login(desktopContext, &loginRequest)
+	if newErr != nil {
+		fmt.Println("Login failed")
+	} else {
+		fmt.Println(newResponse)
+	}
+
+	authInterceptor.AccessToken = newResponse.AccessToken
 
 	requestMessage := desktopPB.EstimationRequest{
 		Bla: "blank",
 	}
 
-	desktopContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration)
+	clientDesktopGateway := desktopPB.NewPowerEstimationServicesClient(connDesktopGateway)
 
 	response, err := clientDesktopGateway.PowerEstimationSP(desktopContext, &requestMessage)
 	if err != nil {
@@ -47,31 +65,28 @@ func main() {
 	} else {
 		fmt.Println(response.PowerEstimate[1])
 	}
-
-	loginRequest := desktopPB.LoginRequest{
-		Username:       "devUsername",
-		HashedPassword: "devPassword",
-	}
-
-	newResponse, newErr := clientLoginDesktopGateway.Login(desktopContext, &loginRequest)
-	if newErr != nil {
-		fmt.Println("Failed")
-	} else {
-		fmt.Println(newResponse)
-	}
 }
 
-func CreateInsecureServerConnection(port string, timeout int, interceptor grpc.UnaryClientInterceptor) *grpc.ClientConn {
-	// This function takes a port address, credentials object, timeout, and an interceptor as an input, creates a connection to the server at the port adress and returns
-	// a secure gRPC connection with the specified interceptor
+func CreateInsecureServerConnection(port string, timeout int, interceptor grpc.UnaryClientInterceptor) (*grpc.ClientConn, error) {
+	/* This function takes a port address, credentials object, timeout, and an interceptor as an input, creates a connection to the server at the port adress and
+	returns a secure gRPC connection with the specified interceptor */
 
-	conn, err := grpc.Dial(port, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
+	ctx, cancel := context.WithTimeout(context.Background(), (time.Duration(timeoutDuration) * time.Second))
+	defer cancel()
+
+	conn, err := grpc.DialContext(
+		ctx,
+		port,
+		grpc.WithBlock(),
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(interceptor),
+	)
+	// conn, err := grpc.Dial(port, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Duration(timeoutDuration)*time.Second), grpc.WithUnaryInterceptor(interceptor))
 	if err != nil {
-		// ErrorLogger.Println("Failed to create connection to server on port: " + port)
-		// ErrorLogger.Println(err)
-		// ErrorLogger.Fatal(err)
+		fmt.Println("Failed to create connection to the server on port: " + port)
+		return nil, err
 	} else {
-		// InfoLogger.Println("Succesfully created connection to the server on port: " + port)
+		fmt.Println("Succesfully created connection to the server on port: " + port)
+		return conn, nil
 	}
-	return conn
 }
