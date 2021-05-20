@@ -1,4 +1,4 @@
-module github.com/nicholasbunn/masters/desktopGateway
+module github.com/nicholasbunn/masters/src/desktopGateway
 
 go 1.13
 
