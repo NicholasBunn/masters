@@ -40,22 +40,21 @@ func init() {
 }
 
 type ClientAuthStruct struct {
-	AccessToken          string
-	AuthenticatedMethods map[string]bool
+	AccessToken string
 }
 
 type ServerAuthStruct struct {
-	JwtManager           *authentication.JWTManager
+	jwtManager           *authentication.JWTManager
 	AuthenticatedMethods map[string][]string
 }
 
 func (interceptor *ClientAuthStruct) ClientAuthInterceptor(ctx context.Context, method string, req interface{}, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 	InfoLogger.Println("Starting client-side authentication interceptor")
 	log.Println(method)
-	if interceptor.AuthenticatedMethods[method] {
-		InfoLogger.Println("Injecting JWT into metadata")
-		return invoker(interceptor.attachToken(ctx), method, req, reply, cc, opts...)
-	}
+
+	// Always inject JWT, even if the requested service is publically available. This removes the need for the frontend to know of what calls are on offer
+	InfoLogger.Println("Injecting JWT into metadata")
+	return invoker(interceptor.attachToken(ctx), method, req, reply, cc, opts...)
 
 	InfoLogger.Println("Requested method is publically available")
 	return invoker(ctx, method, req, reply, cc, opts...)
@@ -79,6 +78,7 @@ func (interceptor *ClientAuthStruct) attachToken(ctx context.Context) context.Co
 func (interceptor *ServerAuthStruct) authorise(ctx context.Context, method string) error {
 	/* This (unexported) function goes through a series of checks to verify that the user making a request is properly
 	authenticated for that request */
+
 	// Check if the method requires authentication
 	accessibleRoles, ok := interceptor.AuthenticatedMethods[method]
 	if !ok {
@@ -89,7 +89,6 @@ func (interceptor *ServerAuthStruct) authorise(ctx context.Context, method strin
 
 	// Check if the request has metadata attached to it
 	md, ok := metadata.FromIncomingContext(ctx)
-
 	if !ok {
 		DebugLogger.Println("Failed to authenticate: metadata is not provided")
 		return status.Errorf(codes.Unauthenticated, "metadata is not provided")
@@ -104,7 +103,7 @@ func (interceptor *ServerAuthStruct) authorise(ctx context.Context, method strin
 
 	// Check that the provided JWT is valid
 	accessToken := values[0]
-	claims, err := interceptor.JwtManager.VerifyJWT(accessToken)
+	claims, err := interceptor.jwtManager.VerifyJWT(accessToken)
 	if err != nil {
 		DebugLogger.Println("Failed to authenticate: Provided JWT is invalid")
 		return status.Errorf(codes.Unauthenticated, "access token is invalid: %v", err)

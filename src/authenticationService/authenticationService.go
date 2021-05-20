@@ -71,7 +71,7 @@ func main() {
 	)
 
 	serverPB.RegisterAuthenticationServiceServer(authenticationServer, &authServer{})
-	DebugLogger.Println("Succesfully registered Power Estimation Services to the server")
+	DebugLogger.Println("Succesfully registered Authentication Service to the server")
 
 	// Start the server
 	if err := authenticationServer.Serve(listener); err != nil {
@@ -95,7 +95,7 @@ func (s *authServer) LoginAuth(ctx context.Context, request *serverPB.LoginAuthR
 	if user == nil {
 		return nil, status.Errorf(codes.NotFound, "the username you provided doesn't exist")
 	} else if !user.CheckPassword(request.GetPassword()) {
-		return nil, status.Errorf(codes.NotFound, "incorrect username/password")
+		return nil, status.Errorf(codes.NotFound, "incorrect password")
 	}
 
 	// 3. Generate a JWT
@@ -110,7 +110,11 @@ func (s *authServer) LoginAuth(ctx context.Context, request *serverPB.LoginAuthR
 	}
 
 	// Return the access token
-	response := &serverPB.LoginAuthResponse{AccessToken: token}
+	response := &serverPB.LoginAuthResponse{
+		Permissions: user.Role,
+		AccessToken: token,
+	}
+
 	return response, nil
 }
 
@@ -125,7 +129,7 @@ func Save(user *authentication.User) error {
 func Find(username string) (*authentication.User, error) {
 	// Still need to implement
 
-	user, err := authentication.CreateUser("admin1", "secret", "guest")
+	user, err := authentication.CreateUser("guest1", "myPassword", "admin")
 	if err != nil {
 		return nil, fmt.Errorf(codes.Internal.String(), "could not create user")
 	}

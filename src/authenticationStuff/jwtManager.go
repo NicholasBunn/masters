@@ -50,7 +50,6 @@ func (manager *JWTManager) VerifyJWT(accessToken string) (*UserClaims, error) {
 			if !ok {
 				return nil, fmt.Errorf("unexpected token signing method")
 			}
-
 			return []byte(manager.SecretKey), nil
 		},
 	)

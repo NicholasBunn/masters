@@ -10,14 +10,18 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	// gRPC packages
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
 
 	// Proto packages
 	authenticationPB "github.com/nicholasbunn/masters/src/authenticationService/proto"
+	authentication "github.com/nicholasbunn/masters/src/authenticationStuff"
 	serverPB "github.com/nicholasbunn/masters/src/desktopGateway/proto"
 	estimationPB "github.com/nicholasbunn/masters/src/powerEstimationSP/proto"
 
@@ -46,12 +50,17 @@ const (
 	// Input parameters (To be passed through the frontend)
 	INPUTfilename = "TestData/CMU_2019_2020_openWater.xlsx" // MEEP Need to pass a path relative to the execution directory
 	MODELTYPE     = "OPENWATER"
+
+	// JWT stuff, load this in from config
+	secretkey     = "secret"
+	tokenduration = 15 * time.Minute
 )
 
 func init() {
 	// Set up logger
 	// If the file doesn't exist, create it, otherwise append to the file
-	file, err := os.OpenFile("program logs/"+"desktopGateway.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	pathSlice := strings.Split(os.Args[0], "/") // This just extracts the services name (filename)
+	file, err := os.OpenFile("program logs/"+pathSlice[len(pathSlice)-1]+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		fmt.Println("Unable to initialise log file, good luck :)")
 		return
@@ -81,21 +90,46 @@ func main() {
 	}
 	InfoLogger.Println("Listening on port: ", addrMyself)
 
-	authInterceptor := interceptors.ServerAuthStruct{}
+	metricInterceptor := interceptors.ServerMetricStruct{}
+	authInterceptor := interceptors.ServerAuthStruct{
+		JwtManager:           authentication.NewJWTManager(secretkey, tokenduration),
+		AuthenticatedMethods: accessibleRoles(),
+	}
+	interceptorChain := grpc_middleware.ChainUnaryServer(
+		metricInterceptor.ServerMetricInterceptor,
+		authInterceptor.ServerAuthInterceptor,
+	)
+
 	// Create a gRPC server object
 	gatewayServer := grpc.NewServer(
-		grpc.UnaryInterceptor(authInterceptor.ServerAuthInterceptor),
-	// grpc.Creds(creds),
+		grpc.UnaryInterceptor(interceptorChain),
+		// grpc.Creds(creds),
 	)
-	// Attach the power estimation service package offering to the server
-	serverPB.RegisterPowerEstimationServicesServer(gatewayServer, &estimationServer{})
-	DebugLogger.Println("Succesfully registered Power Estimation Services to the server")
+
 	// Attach the Login service offering to the server
 	serverPB.RegisterLoginServiceServer(gatewayServer, &loginServer{})
 	DebugLogger.Println("Succesfully registered Login Service to the server")
+	// Attach the power estimation service package offering to the server
+	serverPB.RegisterPowerEstimationServicesServer(gatewayServer, &estimationServer{})
+	DebugLogger.Println("Succesfully registered Power Estimation Services to the server")
 	// Start the server
 	if err := gatewayServer.Serve(listener); err != nil {
 		ErrorLogger.Fatalf("Failed to expose service: \n%v", err)
+	}
+}
+
+func accessibleRoles() map[string][]string {
+	return map[string][]string{
+		"/src/fetchDataService":                      {"admin"},
+		"/src/prepareDataService":                    {"admin"},
+		"/src/estimateService":                       {"admin"},
+		"/PowerEstimationServices/PowerEstimationSP": {"admin"},
+	}
+}
+
+func authMethods() map[string]bool {
+	return map[string]bool{
+		"/PowerEstimationServicePackage/PowerEstimatorService": true,
 	}
 }
 
@@ -117,8 +151,12 @@ func (s *loginServer) Login(ctx context.Context, request *serverPB.LoginRequest)
 	// ________SEARCH FOR/VERIFY USER WITH PROVIDED CREDENTIALS_______
 
 	// Create a secure connection to the server
-	callCounter := interceptors.ClientMetricStruct{}
-	connAuthenticationService, err := CreateInsecureServerConnection(addrAuthenticationService, timeoutDuration, callCounter.ClientMetricInterceptor)
+	metricInterceptor := interceptors.ClientMetricStruct{}
+	interceptorChain := grpc_middleware.ChainUnaryClient(
+		metricInterceptor.ClientMetricInterceptor,
+	)
+
+	connAuthenticationService, err := CreateInsecureServerConnection(addrAuthenticationService, timeoutDuration, interceptorChain)
 	if err != nil {
 		return nil, err
 	}
@@ -131,8 +169,8 @@ func (s *loginServer) Login(ctx context.Context, request *serverPB.LoginRequest)
 
 	// Create the request message for the power estimation service package
 	requestMessageAuthenticationService := authenticationPB.LoginAuthRequest{
-		Username: "admin1",
-		Password: "secret",
+		Username: request.Username,
+		Password: request.Password,
 	}
 
 	// Make the gRPC service call
@@ -140,9 +178,9 @@ func (s *loginServer) Login(ctx context.Context, request *serverPB.LoginRequest)
 	loginContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration)
 	// Invoke the power estimation service package
 	responseLogin, err := clientAuthenticationPB.LoginAuth(loginContext, &requestMessageAuthenticationService)
-	// Handle errors, if any, otherwise, close the connection
+	// Handle errors, if any, otherwise, close the connection to the auth service
 	if err != nil {
-		ErrorLogger.Println("Failed to make the login service call: ")
+		ErrorLogger.Println("Failed to make the login service call: ", err)
 		return nil, err
 	} else {
 		DebugLogger.Println("Succesfully made service call to authentication service.")
@@ -151,7 +189,8 @@ func (s *loginServer) Login(ctx context.Context, request *serverPB.LoginRequest)
 
 	// ________RETURN PERMISSIONS/RESPONSE________
 	responseMessage := serverPB.LoginResponse{
-		Permissions: responseLogin.AccessToken,
+		AccessToken: responseLogin.AccessToken,
+		Permissions: responseLogin.Permissions,
 	}
 
 	return &responseMessage, nil
@@ -176,9 +215,21 @@ func (s *estimationServer) PowerEstimationSP(ctx context.Context, request *serve
 		DebugLogger.Println("Succesfully loaded TLS certificates")
 	}
 
+	// Extract the user's JWT from the incoming request. Can ignore the ok output as ths has already been checked.
+	md, _ := metadata.FromIncomingContext(ctx)
+
 	// Create a secure connection to the server
-	callCounter := interceptors.ClientMetricStruct{}
-	connEstimationSP, err := CreateSecureServerConnection(addrEstimationSP, creds, timeoutDuration, callCounter.ClientMetricInterceptor)
+	metricInterceptor := interceptors.ClientMetricStruct{}
+	authInterceptor := interceptors.ClientAuthStruct{
+		AccessToken:          md["authorisation"][0], // Pass the user's JWT to the outgoing request
+		AuthenticatedMethods: authMethods(),
+	}
+	interceptorChain := grpc_middleware.ChainUnaryClient(
+		metricInterceptor.ClientMetricInterceptor,
+		authInterceptor.ClientAuthInterceptor,
+	)
+
+	connEstimationSP, err := CreateSecureServerConnection(addrEstimationSP, creds, timeoutDuration, interceptorChain)
 	if err != nil {
 		return nil, err
 	}

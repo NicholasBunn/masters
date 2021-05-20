@@ -8,7 +8,8 @@ message LoginAuthRequest {
 }
 
 message LoginAuthResponse {
-    string access_token = 1;
+    string permissions = 1;
+    string access_token = 2;
 }
 
 service AuthenticationService {
