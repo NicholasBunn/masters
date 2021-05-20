@@ -1,4 +1,4 @@
-module github.com/nicholasbunn/masters/src/authenticationStuff
+module github.com/nicholasbunn/masters/authenticationStuff
 
 go 1.13
 
