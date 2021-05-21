@@ -35,7 +35,7 @@ var (
 	// Addresses (To be passed in a config file)
 	addrMyself                = os.Getenv("DESKTOPGATEWAYHOST") + ":50201"
 	addrEstimationSP          = os.Getenv("POWERESTIMATIONHOST") + ":50101"
-	addrAuthenticationService = "localhost:50401"
+	addrAuthenticationService = os.Getenv("AUTHENTICATIONHOST") + ":50401"
 
 	// Logging stuff
 	DebugLogger   *log.Logger

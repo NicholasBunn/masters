@@ -20,6 +20,8 @@ COPY certification/ certification
 COPY src/desktopGateway/desktopGateway.go src/desktopGateway
 
 COPY src/powerEstimationSP/proto/ src/powerEstimationSP/proto
+# This next line is an ugly workaround, but I'm really struggling with Go modules in this specific case so this works
+COPY src/powerEstimationSP/go.mod src/powerEstimationSP/
 
 WORKDIR $GOPATH/src/github.com/nicholasbunn/masters/src/desktopGateway/
 

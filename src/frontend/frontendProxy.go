@@ -40,7 +40,7 @@ func main() {
 	desktopContext, _ := context.WithTimeout(context.Background(), callTimeoutDuration)
 
 	loginRequest := desktopPB.LoginRequest{
-		Username: "guest1",
+		Username: "admin",
 		Password: "myPassword",
 	}
 
