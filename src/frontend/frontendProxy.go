@@ -61,7 +61,7 @@ func main() {
 
 	response, err := clientDesktopGateway.PowerEstimationSP(desktopContext, &requestMessage)
 	if err != nil {
-		fmt.Println("Failed")
+		fmt.Println(err)
 	} else {
 		fmt.Println(response.PowerEstimate[1])
 	}

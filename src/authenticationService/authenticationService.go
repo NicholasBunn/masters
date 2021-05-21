@@ -88,14 +88,14 @@ func (s *authServer) LoginAuth(ctx context.Context, request *serverPB.LoginAuthR
 	// 1. Find the user with the provided username, return an error if they don't exist
 	user, err := Find(request.GetUsername())
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "cannot find user: %v", err)
+		return nil, status.Errorf(codes.NotFound, "cannot find user: %v", err)
 	}
 
 	// 2. Test if the provided username or password are correct for the user, return an error if they aren't not
 	if user == nil {
 		return nil, status.Errorf(codes.NotFound, "the username you provided doesn't exist")
 	} else if !user.CheckPassword(request.GetPassword()) {
-		return nil, status.Errorf(codes.NotFound, "incorrect password")
+		return nil, status.Errorf(codes.NotFound, "the password you provided is incorrect")
 	}
 
 	// 3. Generate a JWT
@@ -106,7 +106,7 @@ func (s *authServer) LoginAuth(ctx context.Context, request *serverPB.LoginAuthR
 
 	token, err := jwtManager.GenerateManager(user)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "cannot generate access token")
+		return nil, status.Errorf(codes.Internal, "could not generate access token")
 	}
 
 	// Return the access token
@@ -131,17 +131,15 @@ func Find(username string) (*authentication.User, error) {
 	if username == "admin" {
 		user, err := authentication.CreateUser("admin", "myPassword", "admin")
 		if err != nil {
-			return nil, fmt.Errorf(codes.Internal.String(), "could not create user")
+			return nil, status.Errorf(codes.Internal, "could not create user")
 		}
 		return user, nil
 	}
 
 	user, err := authentication.CreateUser("guest", "myPassword", "guest")
 	if err != nil {
-		return nil, fmt.Errorf(codes.Internal.String(), "could not create user")
+		return nil, status.Errorf(codes.Internal, "could not create user")
 	}
 
 	return user, nil
 }
-
-// ________JWT RELATED CODE________

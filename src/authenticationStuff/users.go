@@ -1,9 +1,9 @@
 package authentication
 
 import (
-	"fmt"
-
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type User struct {
@@ -19,7 +19,7 @@ func CreateUser(username string, password string, role string) (*User, error) {
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, fmt.Errorf("failed to hash password: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to hash password: %v", err)
 	}
 
 	user := &User{
