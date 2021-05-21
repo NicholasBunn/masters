@@ -70,6 +70,7 @@ services:
         environment: 
             DESKTOPGATEWAYHOST: desktopgateway
             POWERESTIMATIONHOST: powerestimationsp
+            AUTHENTICATIONHOST: authenticationservice
             PROMETHEUSHOST: prometheus
             PUSHGATEWAYHOST: pushgateway
         image: desktop_gateway
@@ -77,6 +78,18 @@ services:
             - southernOcean
         ports: 
             - 50201:50201
+
+    authenticationservice:
+        build: 
+            context: .
+            dockerfile: src/authenticationService/Dockerfile
+        environment: 
+            AUTHENTICATIONHOST: authenticationservice
+            image: authentication_service
+        networks: 
+            - southernOcean
+        ports: 
+            - 50401:50401
 
     # Envoy proxy
     envoyproxy:

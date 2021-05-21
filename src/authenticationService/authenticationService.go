@@ -21,7 +21,7 @@ import (
 
 var (
 	// Addresses (To be passed in a config file)
-	addrMyself = "localhost:50401"
+	addrMyself = os.Getenv("AUTHENTICATIONHOST") + ":50401"
 
 	// Logging stuff
 	DebugLogger   *log.Logger
@@ -128,8 +128,15 @@ func Save(user *authentication.User) error {
 
 func Find(username string) (*authentication.User, error) {
 	// Still need to implement
+	if username == "admin" {
+		user, err := authentication.CreateUser("admin", "myPassword", "admin")
+		if err != nil {
+			return nil, fmt.Errorf(codes.Internal.String(), "could not create user")
+		}
+		return user, nil
+	}
 
-	user, err := authentication.CreateUser("guest1", "myPassword", "admin")
+	user, err := authentication.CreateUser("guest", "myPassword", "guest")
 	if err != nil {
 		return nil, fmt.Errorf(codes.Internal.String(), "could not create user")
 	}
