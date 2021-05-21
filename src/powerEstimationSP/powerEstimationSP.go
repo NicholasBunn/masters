@@ -141,7 +141,7 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 	metricInterceptor := interceptors.ClientMetricStruct{} // Custom metric (Prometheus) interceptor
 
 	// Create an secure connection to the fetch data server
-	connFS, err := CreateSecureServerConnection(
+	connFS, err := createSecureServerConnection(
 		addrFS,                          // Set the address of the server
 		creds,                           // Add the TLS credentials
 		timeoutDuration,                 // Set the duration the client will wait before timing out
@@ -152,7 +152,7 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 	}
 
 	// Create an secure connection to the prepare data server
-	connPS, err := CreateSecureServerConnection(
+	connPS, err := createSecureServerConnection(
 		addrPS,                          // Set the address of the server
 		creds,                           // Add the TLS credentials
 		timeoutDuration,                 // Set the duration the client will wait before timing out
@@ -163,7 +163,7 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 	}
 
 	// Create an secure connection to the estimation server
-	connES, err := CreateSecureServerConnection(
+	connES, err := createSecureServerConnection(
 		addrES,                          // Set the address of the server
 		creds,                           // Add the TLS credentials
 		timeoutDuration,                 // Set the duration the client will wait before timing out
@@ -317,7 +317,7 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 // ________SUPPORTING FUNCTIONS________
 
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
-	/* This function loads TLS credentials for both the client and server,
+	/* This (unexported) function loads TLS credentials for both the client and server,
 	enabling mutual TLS authentication between the client and server. It takes no inputs and returns a gRPC TransportCredentials object. */
 
 	// Load certificate of the CA who signed server's certificate
@@ -347,8 +347,8 @@ func loadTLSCredentials() (credentials.TransportCredentials, error) {
 	return credentials.NewTLS(config), nil
 }
 
-func CreateSecureServerConnection(port string, credentials credentials.TransportCredentials, timeout int, interceptor grpc.UnaryClientInterceptor) (*grpc.ClientConn, error) {
-	/* This function takes a port address, gRPC TransportCredentials object, timeout,
+func createSecureServerConnection(port string, credentials credentials.TransportCredentials, timeout int, interceptor grpc.UnaryClientInterceptor) (*grpc.ClientConn, error) {
+	/* This (unexported) function takes a port address, gRPC TransportCredentials object, timeout,
 	and UnaryClientInterceptor object as inputs. It creates a connection to the server
 	at the port adress and returns a secure gRPC connection with the specified
 	interceptor */
@@ -378,8 +378,8 @@ func CreateSecureServerConnection(port string, credentials credentials.Transport
 	return conn, nil
 }
 
-func CreateInsecureServerConnection(port string, timeout int, interceptor grpc.UnaryClientInterceptor) (*grpc.ClientConn, error) {
-	/* This function takes a port address, timeout, and UnaryClientInterceptor
+func createInsecureServerConnection(port string, timeout int, interceptor grpc.UnaryClientInterceptor) (*grpc.ClientConn, error) {
+	/* This (unexported) function takes a port address, timeout, and UnaryClientInterceptor
 	object as inputs. It creates a connection to the server	at the port adress
 	and returns an insecure gRPC connection with the specified interceptor */
 
