@@ -40,6 +40,10 @@ var (
 	InfoLogger    *log.Logger
 	WarningLogger *log.Logger
 	ErrorLogger   *log.Logger
+
+	// Metric interceptors
+	clientMetricInterceptor *interceptors.ClientMetricStruct
+	serverMetricInterceptor *interceptors.ServerMetricStruct
 )
 
 const (
@@ -66,6 +70,10 @@ func init() {
 	InfoLogger = log.New(file, "INFO: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	WarningLogger = log.New(file, "WARNING: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	ErrorLogger = log.New(file, "ERROR: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
+
+	// Metric interceptor
+	clientMetricInterceptor = interceptors.NewClientMetrics() // Custom metric (Prometheus) interceptor
+	serverMetricInterceptor = interceptors.NewServerMetrics() // Custom metric (Prometheus) interceptor
 }
 
 func main() {
@@ -90,13 +98,10 @@ func main() {
 	}
 	InfoLogger.Println("Listening on port: ", addrMyself)
 
-	// Create the interceptors required for this connection
-	metricInterceptor := interceptors.ServerMetricStruct{} // Custom metric (Prometheus) interceptor
-
 	// Create a gRPC server object
 	estimationServer := grpc.NewServer(
 		grpc.Creds(creds),
-		grpc.UnaryInterceptor(metricInterceptor.ServerMetrics), // Add the interceptor to this server
+		grpc.UnaryInterceptor(serverMetricInterceptor.ServerMetricInterceptor), // Add the interceptor to this server
 	)
 
 	// Attach the power-train estimation service offering to the server
@@ -137,15 +142,12 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 		DebugLogger.Println("Succesfully loaded TLS certificates")
 	}
 
-	// Create the interceptors required for the server connections
-	metricInterceptor := interceptors.ClientMetricStruct{} // Custom metric (Prometheus) interceptor
-
 	// Create an secure connection to the fetch data server
 	connFS, err := createSecureServerConnection(
-		addrFS,                          // Set the address of the server
-		creds,                           // Add the TLS credentials
-		timeoutDuration,                 // Set the duration the client will wait before timing out
-		metricInterceptor.ClientMetrics, // Add the interceptor to this server
+		addrFS,          // Set the address of the server
+		creds,           // Add the TLS credentials
+		timeoutDuration, // Set the duration the client will wait before timing out
+		clientMetricInterceptor.ClientMetricInterceptor, // Add the interceptor to this server
 	)
 	if err != nil {
 		return nil, err
@@ -153,10 +155,10 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 
 	// Create an secure connection to the prepare data server
 	connPS, err := createSecureServerConnection(
-		addrPS,                          // Set the address of the server
-		creds,                           // Add the TLS credentials
-		timeoutDuration,                 // Set the duration the client will wait before timing out
-		metricInterceptor.ClientMetrics, // Add the interceptor to this server
+		addrPS,          // Set the address of the server
+		creds,           // Add the TLS credentials
+		timeoutDuration, // Set the duration the client will wait before timing out
+		clientMetricInterceptor.ClientMetricInterceptor, // Add the interceptor to this server
 	)
 	if err != nil {
 		return nil, err
@@ -164,10 +166,10 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 
 	// Create an secure connection to the estimation server
 	connES, err := createSecureServerConnection(
-		addrES,                          // Set the address of the server
-		creds,                           // Add the TLS credentials
-		timeoutDuration,                 // Set the duration the client will wait before timing out
-		metricInterceptor.ClientMetrics, // Add the interceptor to this server
+		addrES,          // Set the address of the server
+		creds,           // Add the TLS credentials
+		timeoutDuration, // Set the duration the client will wait before timing out
+		clientMetricInterceptor.ClientMetricInterceptor, // Add the interceptor to this server
 	)
 	if err != nil {
 		return nil, err

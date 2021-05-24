@@ -33,7 +33,7 @@ func main() {
 		authInterceptor.ClientAuthInterceptor,
 	)
 
-	connDesktopGateway, err := CreateInsecureServerConnection(addrDesktopGateway, timeoutDuration, interceptorChain)
+	connDesktopGateway, err := createInsecureServerConnection(addrDesktopGateway, timeoutDuration, interceptorChain)
 
 	clientLoginDesktopGateway := desktopPB.NewLoginServiceClient(connDesktopGateway)
 
@@ -67,7 +67,7 @@ func main() {
 	}
 }
 
-func CreateInsecureServerConnection(port string, timeout int, interceptor grpc.UnaryClientInterceptor) (*grpc.ClientConn, error) {
+func createInsecureServerConnection(port string, timeout int, interceptor grpc.UnaryClientInterceptor) (*grpc.ClientConn, error) {
 	/* This function takes a port address, credentials object, timeout, and an interceptor as an input, creates a connection to the server at the port adress and
 	returns a secure gRPC connection with the specified interceptor */
 

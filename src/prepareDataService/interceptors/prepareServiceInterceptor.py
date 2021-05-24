@@ -14,7 +14,7 @@ def pushToPrometheus(c, g, h, executionTime, address, job, registry):
 	c.inc()
 	g.set_to_current_time()
 	h.observe(executionTime)
-			
+	
 	prometheus.push_to_gateway(address, job=job, registry=registry)
 	logger.info("Succesfully pushed metrics")
 
@@ -49,13 +49,13 @@ def sendMetrics(func):
 class MetricInterceptor(ServerInterceptor):
 	pushGatewayaHost = os.getenv("PUSHGATEWAYHOST", "localhost") # Receives the hostname from the environmental variables for Docker, or defaults to localhost for local testing
 	address = "http://" + pushGatewayaHost + ":9091" # Todo: pass/pull this from the message metadata
-	
+
 	def __init__(self):
 		logger.debug("Initialising metric interceptor")
 		self.registry = prometheus.CollectorRegistry()
-		self.c = prometheus.Counter("calls", "Number of times this API has been called", registry=self.registry)
-		self.g = prometheus.Gauge('last_call_time', 'Last time this API was called', registry=self.registry)
-		self.h = prometheus.Histogram('request_latency', 'Ammount of time for request to be processed', registry=self.registry)
+		self.c = prometheus.Counter("server_request_counter", "Number of times this API has been called", registry=self.registry)
+		self.g = prometheus.Gauge('server_last_call_time', 'Last time this API was called', registry=self.registry)
+		self.h = prometheus.Histogram('server_request_latency', 'Ammount of time for request to be processed', registry=self.registry)
 
 	@sendMetrics
 	def intercept(self, method, request, context, methodName):

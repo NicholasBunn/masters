@@ -42,6 +42,10 @@ var (
 	InfoLogger    *log.Logger
 	WarningLogger *log.Logger
 	ErrorLogger   *log.Logger
+
+	// Metric interceptors
+	clientMetricInterceptor *interceptors.ClientMetricStruct
+	serverMetricInterceptor *interceptors.ServerMetricStruct
 )
 
 const (
@@ -59,7 +63,7 @@ const (
 )
 
 func init() {
-	/* The init functin is used to set up the logger whenever the service is started
+	/* The init functin is used to set up the logger and metric interceptors whenever the service is started
 	 */
 
 	// If the file doesn't exist, create it, otherwise append to the file
@@ -76,6 +80,11 @@ func init() {
 	InfoLogger = log.New(file, "INFO: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	WarningLogger = log.New(file, "WARNING: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	ErrorLogger = log.New(file, "ERROR: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
+
+	// Metric interceptor
+	clientMetricInterceptor = interceptors.NewClientMetrics() // Custom metric (Prometheus) interceptor
+	serverMetricInterceptor = interceptors.NewServerMetrics() // Custom metric (Prometheus) interceptor
+
 }
 
 func main() {
@@ -101,14 +110,13 @@ func main() {
 	InfoLogger.Println("Listening on port: ", addrMyself)
 
 	// Create the interceptors required for this connection
-	metricInterceptor := interceptors.ServerMetricStruct{} // Custom metric (Prometheus) interceptor
-	authInterceptor := interceptors.ServerAuthStruct{      // Custom auth (JWT) interceptor
+	authInterceptor := interceptors.ServerAuthStruct{ // Custom auth (JWT) interceptor
 		JwtManager:           authentication.NewJWTManager(secretkey, tokenduration),
 		AuthenticatedMethods: accessibleRoles(),
 	}
 	// Create an interceptor chain with the above interceptors
 	interceptorChain := grpc_middleware.ChainUnaryServer(
-		metricInterceptor.ServerMetricInterceptor,
+		serverMetricInterceptor.ServerMetricInterceptor,
 		authInterceptor.ServerAuthInterceptor,
 	)
 
@@ -176,13 +184,13 @@ func (s *loginServer) Login(ctx context.Context, request *serverPB.LoginRequest)
 	InfoLogger.Println("Received Login service call")
 
 	// Create the interceptors required for this connection
-	metricInterceptor := interceptors.ClientMetricStruct{} // Custom auth (JWT) interceptor
+	// metricInterceptor := interceptors.NewClientMetrics() // Custom auth (JWT) interceptor
 
 	// Create an insecure connection to the server
 	connAuthenticationService, err := createInsecureServerConnection(
-		addrAuthenticationService,                 // Set the address of the server
-		timeoutDuration,                           // Set the duration the client will wait before timing out
-		metricInterceptor.ClientMetricInterceptor, // Add the interceptor chain to this server
+		addrAuthenticationService,                       // Set the address of the server
+		timeoutDuration,                                 // Set the duration the client will wait before timing out
+		clientMetricInterceptor.ClientMetricInterceptor, // Add the interceptor chain to this server
 	)
 	if err != nil {
 		return nil, err
@@ -252,14 +260,14 @@ func (s *estimationServer) PowerEstimationSP(ctx context.Context, request *serve
 	md, _ := metadata.FromIncomingContext(ctx)
 
 	// Create the interceptors required for this connection
-	metricInterceptor := interceptors.ClientMetricStruct{} // Custom metric (Prometheus) interceptor
-	authInterceptor := interceptors.ClientAuthStruct{      // Custom auth (JWT) interceptor
+	// metricInterceptor := interceptors.NewClientMetrics() // Custom metric (Prometheus) interceptor
+	authInterceptor := interceptors.ClientAuthStruct{ // Custom auth (JWT) interceptor
 		AccessToken:          md["authorisation"][0], // Pass the user's JWT to the outgoing request
 		AuthenticatedMethods: authMethods(),
 	}
 	// Create an interceptor chain with the above interceptors
 	interceptorChain := grpc_middleware.ChainUnaryClient(
-		metricInterceptor.ClientMetricInterceptor,
+		clientMetricInterceptor.ClientMetricInterceptor,
 		authInterceptor.ClientAuthInterceptor,
 	)
 
