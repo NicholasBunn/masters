@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/gob"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -137,7 +138,7 @@ func (metr *ClientMetricStruct) ClientMetricInterceptor(ctx context.Context, met
 	metr.clientResponseMessageSize.With(prometheus.Labels{"grpc_type": "unary", "grpc_service": serviceName, "grpc_method": serviceMethod}).Observe(float64(size))
 
 	// Push metrics to the pushgateway
-	err = pushClientMetrics(metr)
+	err = pushClientMetrics(metr, serviceName)
 
 	return err
 }
@@ -171,7 +172,7 @@ func (metr *ServerMetricStruct) ServerMetricInterceptor(ctx context.Context, req
 	metr.serverResponseCounter.With(prometheus.Labels{"grpc_type": "unary", "grpc_service": serviceName, "grpc_method": serviceMethod}).Inc()
 
 	// Push metrics to the pushgateway
-	err = pushServerMetrics(metr)
+	err = pushServerMetrics(metr, serviceName)
 
 	return h, err
 }
@@ -185,15 +186,15 @@ func getMessageSize(val interface{}) (int, error) {
 	err := encoder.Encode(val)
 	if err != nil {
 		// ToDo Log error
-		return 0, err
+		return 0, fmt.Errorf("unable to get message size")
 	}
 
 	return binary.Size(buff.Bytes()), nil
 }
 
-func pushClientMetrics(metrics *ClientMetricStruct) error {
+func pushClientMetrics(metrics *ClientMetricStruct, service string) error {
 	InfoLogger.Println("Pushing metrics to gateway")
-	err := push.New(os.Getenv("PUSHGATEWAYHOST")+":9091", "DesktopGateway").
+	err := push.New(os.Getenv("PUSHGATEWAYHOST")+":9091", service+"Client").
 		Collector(*metrics.clientRequestCounter).
 		Collector(*metrics.clientRequestMessageSize).
 		Collector(*metrics.clientResponseCounter).
@@ -209,9 +210,9 @@ func pushClientMetrics(metrics *ClientMetricStruct) error {
 	return err
 }
 
-func pushServerMetrics(metrics *ServerMetricStruct) error {
+func pushServerMetrics(metrics *ServerMetricStruct, serviceName string) error {
 	InfoLogger.Println("Pushing metrics to gateway")
-	err := push.New(os.Getenv("PUSHGATEWAYHOST")+":9091", "DesktopGateway").
+	err := push.New(os.Getenv("PUSHGATEWAYHOST")+":9091", serviceName+"Server").
 		Collector(*metrics.serverRequestCounter).
 		Collector(*metrics.serverLastCallTime).
 		Collector(*metrics.serverResponseCounter).

@@ -2,11 +2,15 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	desktopPB "github.com/nicholasbunn/masters/src/desktopGateway/proto"
 	"github.com/nicholasbunn/masters/src/frontend/interceptors"
@@ -26,6 +30,17 @@ const (
 )
 
 func main() {
+
+	fmt.Println("Started frontend")
+
+	// Load in TLS credentials
+	creds, err := loadTLSCredentials()
+	if err != nil {
+		fmt.Printf("Error loading TLS credentials")
+	} else {
+		fmt.Println("Succesfully loaded TLS certificates")
+	}
+
 	metricInterceptor := interceptors.ClientMetricStruct{}
 	authInterceptor := interceptors.ClientAuthStruct{}
 	interceptorChain := grpc_middleware.ChainUnaryClient(
@@ -33,7 +48,7 @@ func main() {
 		authInterceptor.ClientAuthInterceptor,
 	)
 
-	connDesktopGateway, err := createInsecureServerConnection(addrDesktopGateway, timeoutDuration, interceptorChain)
+	connDesktopGateway, err := createSecureServerConnection(addrDesktopGateway, creds, timeoutDuration, interceptorChain)
 
 	clientLoginDesktopGateway := desktopPB.NewLoginServiceClient(connDesktopGateway)
 
@@ -67,6 +82,37 @@ func main() {
 	}
 }
 
+func loadTLSCredentials() (credentials.TransportCredentials, error) {
+	/* This function loads TLS credentials for both the client and server,
+	enabling mutual TLS authentication between the client and server. It takes no inputs and returns a gRPC TransportCredentials object. */
+
+	// Load certificate of the CA who signed server's certificate
+	pemServerCA, err := ioutil.ReadFile("certification/ca-cert.pem")
+	if err != nil {
+		return nil, err
+	}
+
+	// Load the server CA's certificates
+	certificatePool := x509.NewCertPool()
+	if !certificatePool.AppendCertsFromPEM(pemServerCA) {
+		return nil, fmt.Errorf("failed to add the server CA's certificate")
+	}
+
+	// Load the client's certificate and private key
+	clientCertificate, err := tls.LoadX509KeyPair("certification/client-cert.pem", "certification/client-key.pem")
+	if err != nil {
+		return nil, err
+	}
+
+	// Create and return the credentials object
+	config := &tls.Config{
+		Certificates: []tls.Certificate{clientCertificate},
+		RootCAs:      certificatePool,
+	}
+
+	return credentials.NewTLS(config), nil
+}
+
 func createInsecureServerConnection(port string, timeout int, interceptor grpc.UnaryClientInterceptor) (*grpc.ClientConn, error) {
 	/* This function takes a port address, credentials object, timeout, and an interceptor as an input, creates a connection to the server at the port adress and
 	returns a secure gRPC connection with the specified interceptor */
@@ -89,4 +135,35 @@ func createInsecureServerConnection(port string, timeout int, interceptor grpc.U
 		fmt.Println("Succesfully created connection to the server on port: " + port)
 		return conn, nil
 	}
+}
+
+func createSecureServerConnection(port string, credentials credentials.TransportCredentials, timeout int, interceptor grpc.UnaryClientInterceptor) (*grpc.ClientConn, error) {
+	/* This (unexported) function takes a port address, gRPC TransportCredentials object, timeout,
+	and UnaryClientInterceptor object as inputs. It creates a connection to the server
+	at the port adress and returns a secure gRPC connection with the specified
+	interceptor */
+
+	// Create the context for the request
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		(time.Duration(timeoutDuration) * time.Second),
+	)
+	defer cancel()
+
+	conn, err := grpc.DialContext(
+		ctx,              // Add the created context to the connection
+		port,             // Add the port that the server is listening on
+		grpc.WithBlock(), // Make the dial a blocking call so that we can ensure the connection is indeed created
+		grpc.WithTransportCredentials(credentials), // Add the TLS credentials
+		grpc.WithUnaryInterceptor(interceptor),     // Add the provided interceptors to the connection
+	)
+
+	// Handle errors, if any
+	if err != nil {
+		fmt.Println("Failed to create connection to the server on port: " + port)
+		return nil, err
+	}
+
+	fmt.Println("Succesfully created connection to the server on port: " + port)
+	return conn, nil
 }

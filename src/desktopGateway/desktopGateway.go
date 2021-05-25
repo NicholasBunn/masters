@@ -95,12 +95,12 @@ func main() {
 	InfoLogger.Println("Started gateway")
 
 	// Load in TLS credentials
-	// creds, err := loadTLSCredentials()
-	// if err != nil {
-	// 	ErrorLogger.Printf("Error loading TLS credentials")
-	// } else {
-	// 	DebugLogger.Println("Succesfully loaded TLS certificates")
-	// }
+	creds, err := loadTLSCredentials()
+	if err != nil {
+		ErrorLogger.Printf("Error loading TLS credentials")
+	} else {
+		DebugLogger.Println("Succesfully loaded TLS certificates")
+	}
 
 	// Create a listener on the specified tcp port
 	listener, err := net.Listen("tcp", addrMyself)
@@ -122,7 +122,7 @@ func main() {
 
 	// Create a gRPC server object
 	gatewayServer := grpc.NewServer(
-		// grpc.Creds(creds), // Add the TLS credentials to this server
+		grpc.Creds(creds),                       // Add the TLS credentials to this server
 		grpc.UnaryInterceptor(interceptorChain), // Add the interceptor chain to this server
 	)
 
@@ -184,7 +184,7 @@ func (s *loginServer) Login(ctx context.Context, request *serverPB.LoginRequest)
 	InfoLogger.Println("Received Login service call")
 
 	// Create the interceptors required for this connection
-	// metricInterceptor := interceptors.NewClientMetrics() // Custom auth (JWT) interceptor
+	// metricInterceptor := interceptors.NewClientMetrics() // Custom metric (prometheus) interceptor
 
 	// Create an insecure connection to the server
 	connAuthenticationService, err := createInsecureServerConnection(
