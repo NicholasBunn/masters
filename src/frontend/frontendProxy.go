@@ -9,6 +9,7 @@ import (
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
@@ -43,9 +44,14 @@ func main() {
 
 	metricInterceptor := interceptors.NewClientMetrics()
 	authInterceptor := interceptors.ClientAuthStruct{}
+	retryOptions := []grpc_retry.CallOption{
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)),
+		grpc_retry.WithMax(5),
+	}
 	interceptorChain := grpc_middleware.ChainUnaryClient(
 		metricInterceptor.ClientMetricInterceptor,
 		authInterceptor.ClientAuthInterceptor,
+		grpc_retry.UnaryClientInterceptor(retryOptions...),
 	)
 
 	connDesktopGateway, err := createSecureServerConnection(addrDesktopGateway, creds, timeoutDuration, interceptorChain)

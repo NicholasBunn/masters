@@ -18,6 +18,7 @@ import (
 
 	// gRPC packages
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
@@ -177,12 +178,22 @@ func (s *loginServer) Login(ctx context.Context, request *serverPB.LoginRequest)
 
 	// Create the interceptors required for this connection
 	clientMetricInterceptor := interceptors.NewClientMetrics() // Custom metric (Prometheus) interceptor
+	// Create the retry options to specify how the client should retry connections
+	retryOptions := []grpc_retry.CallOption{
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)), // Use exponential backoff to progressively wait longer between retries
+		grpc_retry.WithMax(5), // Set the maximum number of retries
+	}
+
+	interceptorChain := grpc_middleware.ChainUnaryClient(
+		clientMetricInterceptor.ClientMetricInterceptor,
+		grpc_retry.UnaryClientInterceptor(retryOptions...),
+	)
 
 	// Create an insecure connection to the server
 	connAuthenticationService, err := createInsecureServerConnection(
-		addrAuthenticationService,                       // Set the address of the server
-		timeoutDuration,                                 // Set the duration the client will wait before timing out
-		clientMetricInterceptor.ClientMetricInterceptor, // Add the interceptor chain to this server
+		addrAuthenticationService, // Set the address of the server
+		timeoutDuration,           // Set the duration the client will wait before timing out
+		interceptorChain,          // Add the interceptor chain to this server
 	)
 	if err != nil {
 		return nil, err
@@ -257,10 +268,18 @@ func (s *estimationServer) PowerEstimationSP(ctx context.Context, request *serve
 		AccessToken:          md["authorisation"][0], // Pass the user's JWT to the outgoing request
 		AuthenticatedMethods: authMethods(),
 	}
+
+	// Create the retry options to specify how the client should retry connections
+	retryOptions := []grpc_retry.CallOption{
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)), // Use exponential backoff to progressively wait longer between retries
+		grpc_retry.WithMax(5), // Set the maximum number of retries
+	}
+
 	// Create an interceptor chain with the above interceptors
 	interceptorChain := grpc_middleware.ChainUnaryClient(
 		clientMetricInterceptor.ClientMetricInterceptor,
 		authInterceptor.ClientAuthInterceptor,
+		grpc_retry.UnaryClientInterceptor(retryOptions...),
 	)
 
 	// Create an secure connection to the server

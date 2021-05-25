@@ -14,6 +14,8 @@ import (
 	"time"
 
 	// gRPC packages
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
@@ -142,12 +144,24 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 		DebugLogger.Println("Succesfully loaded TLS certificates")
 	}
 
+	// Create the retry options to specify how the client should retry connections
+	retryOptions := []grpc_retry.CallOption{
+		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)), // Use exponential backoff to progressively wait longer between retries
+		grpc_retry.WithMax(5), // Set the maximum number of retries
+	}
+
+	// Create an interceptor chain with the above interceptors
+	interceptorChain := grpc_middleware.ChainUnaryClient(
+		clientMetricInterceptor.ClientMetricInterceptor,
+		grpc_retry.UnaryClientInterceptor(retryOptions...),
+	)
+
 	// Create an secure connection to the fetch data server
 	connFS, err := createSecureServerConnection(
-		addrFS,          // Set the address of the server
-		creds,           // Add the TLS credentials
-		timeoutDuration, // Set the duration the client will wait before timing out
-		clientMetricInterceptor.ClientMetricInterceptor, // Add the interceptor to this server
+		addrFS,           // Set the address of the server
+		creds,            // Add the TLS credentials
+		timeoutDuration,  // Set the duration the client will wait before timing out
+		interceptorChain, // Add the interceptor to this server
 	)
 	if err != nil {
 		return nil, err
@@ -155,10 +169,10 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 
 	// Create an secure connection to the prepare data server
 	connPS, err := createSecureServerConnection(
-		addrPS,          // Set the address of the server
-		creds,           // Add the TLS credentials
-		timeoutDuration, // Set the duration the client will wait before timing out
-		clientMetricInterceptor.ClientMetricInterceptor, // Add the interceptor to this server
+		addrPS,           // Set the address of the server
+		creds,            // Add the TLS credentials
+		timeoutDuration,  // Set the duration the client will wait before timing out
+		interceptorChain, // Add the interceptor to this server
 	)
 	if err != nil {
 		return nil, err
@@ -166,10 +180,10 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 
 	// Create an secure connection to the estimation server
 	connES, err := createSecureServerConnection(
-		addrES,          // Set the address of the server
-		creds,           // Add the TLS credentials
-		timeoutDuration, // Set the duration the client will wait before timing out
-		clientMetricInterceptor.ClientMetricInterceptor, // Add the interceptor to this server
+		addrES,           // Set the address of the server
+		creds,            // Add the TLS credentials
+		timeoutDuration,  // Set the duration the client will wait before timing out
+		interceptorChain, // Add the interceptor to this server
 	)
 	if err != nil {
 		return nil, err
