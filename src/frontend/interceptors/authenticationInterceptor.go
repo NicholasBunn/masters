@@ -1,11 +1,14 @@
 package interceptors
 
 import (
+	// Native packages
+
 	"context"
 	"log"
 	"os"
 	"strings"
 
+	// gRPC packages
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -24,14 +27,18 @@ import (
 // )
 
 func init() {
-	// Logger setup
-	pathSlice := strings.Split(os.Args[0], "/")
+	/* The init functin is used to set up the logger and metric interceptors whenever the service is started
+	 */
+
+	// If the file doesn't exist, create it, otherwise append to the file
+	pathSlice := strings.Split(os.Args[0], "/") // This just extracts the services name (filename)
 	file, err := os.OpenFile("program logs/"+pathSlice[len(pathSlice)-1]+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
-		log.Fatal(err)
+		// If opening the log file throws an error, continue to create the loggers but print to terminal instead
+		log.Println("Unable to initialise log file, good luck :)")
+	} else {
+		log.SetOutput(file)
 	}
-
-	log.SetOutput(file)
 
 	DebugLogger = log.New(file, "DEBUG: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	InfoLogger = log.New(file, "INFO: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
@@ -40,11 +47,12 @@ func init() {
 }
 
 type ClientAuthStruct struct {
-	AccessToken string
+	AccessToken          string
+	AuthenticatedMethods map[string]bool
 }
 
 type ServerAuthStruct struct {
-	jwtManager           *authentication.JWTManager
+	JwtManager           *authentication.JWTManager
 	AuthenticatedMethods map[string][]string
 }
 
@@ -56,8 +64,8 @@ func (interceptor *ClientAuthStruct) ClientAuthInterceptor(ctx context.Context, 
 	InfoLogger.Println("Injecting JWT into metadata")
 	return invoker(interceptor.attachToken(ctx), method, req, reply, cc, opts...)
 
-	InfoLogger.Println("Requested method is publically available")
-	return invoker(ctx, method, req, reply, cc, opts...)
+	// InfoLogger.Println("Requested method is publically available")
+	// return invoker(ctx, method, req, reply, cc, opts...)
 }
 
 func (interceptor *ServerAuthStruct) ServerAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -89,30 +97,31 @@ func (interceptor *ServerAuthStruct) authorise(ctx context.Context, method strin
 
 	// Check if the request has metadata attached to it
 	md, ok := metadata.FromIncomingContext(ctx)
+
 	if !ok {
 		DebugLogger.Println("Failed to authenticate: metadata is not provided")
-		return status.Errorf(codes.Unauthenticated, "metadata is not provided")
+		return status.Errorf(codes.PermissionDenied, "metadata is not provided")
 	}
 
 	// Check if a JWT has been included in the metadata
 	values := md["authorisation"]
 	if len(values) == 0 {
 		DebugLogger.Println("Failed to authenticate: JWT has not been provided")
-		return status.Errorf(codes.Unauthenticated, "authentication token has not been provided")
+		return status.Errorf(codes.PermissionDenied, "authentication token has not been provided")
 	}
 
 	// Check that the provided JWT is valid
 	accessToken := values[0]
-	claims, err := interceptor.jwtManager.VerifyJWT(accessToken)
+	claims, err := interceptor.JwtManager.VerifyJWT(accessToken)
 	if err != nil {
 		DebugLogger.Println("Failed to authenticate: Provided JWT is invalid")
-		return status.Errorf(codes.Unauthenticated, "access token is invalid: %v", err)
+		return status.Errorf(codes.PermissionDenied, "access token is invalid: %v", err)
 	}
 
 	// Check that the role of the user making the service call authenticates them for the service being called
 	for _, role := range accessibleRoles {
 		if role == claims.Role {
-			DebugLogger.Printf("Succesfully authenticated request for ", method)
+			DebugLogger.Println("Succesfully authenticated request for ", method)
 			return nil
 		}
 	}

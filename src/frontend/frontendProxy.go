@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -55,6 +56,9 @@ func main() {
 	)
 
 	connDesktopGateway, err := createSecureServerConnection(addrDesktopGateway, creds, timeoutDuration, interceptorChain)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	clientLoginDesktopGateway := desktopPB.NewLoginServiceClient(connDesktopGateway)
 

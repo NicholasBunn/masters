@@ -1,20 +1,24 @@
 package interceptors
 
 import (
+	// Native packages
 	"bytes"
 	"context"
 	"encoding/binary"
 	"encoding/gob"
-	"fmt"
 	"log"
 	"os"
 	"strings"
 	"time"
 
-	"google.golang.org/grpc"
-
+	// Required packages
 	prometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
+
+	// gRPC packages
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -26,14 +30,18 @@ var (
 )
 
 func init() {
-	// Logger setup
-	pathSlice := strings.Split(os.Args[0], "/")
+	/* The init functin is used to set up the logger and metric interceptors whenever the service is started
+	 */
+
+	// If the file doesn't exist, create it, otherwise append to the file
+	pathSlice := strings.Split(os.Args[0], "/") // This just extracts the services name (filename)
 	file, err := os.OpenFile("program logs/"+pathSlice[len(pathSlice)-1]+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
-		log.Fatal(err)
+		// If opening the log file throws an error, continue to create the loggers but print to terminal instead
+		log.Println("Unable to initialise log file, good luck :)")
+	} else {
+		log.SetOutput(file)
 	}
-
-	log.SetOutput(file)
 
 	DebugLogger = log.New(file, "DEBUG: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	InfoLogger = log.New(file, "INFO: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
@@ -129,6 +137,9 @@ func (metr *ClientMetricStruct) ClientMetricInterceptor(ctx context.Context, met
 
 	// Run gRPC call here
 	err := invoker(ctx, method, req, reply, cc, opts...)
+	if err != nil {
+		ErrorLogger.Println("Failed to make service call from client-side metric interceptor: \n", err)
+	}
 
 	// Increment the response call counter
 	metr.clientResponseCounter.With(prometheus.Labels{"grpc_type": "unary", "grpc_service": serviceName, "grpc_method": serviceMethod}).Inc()
@@ -164,6 +175,9 @@ func (metr *ServerMetricStruct) ServerMetricInterceptor(ctx context.Context, req
 
 	// Run gRPC call here
 	h, err := handler(ctx, req)
+	if err != nil {
+		ErrorLogger.Println("Failed to make service call from server-side metric interceptor: \n", err)
+	}
 
 	// Set the call latency (response time)
 	metr.serverRequestLatency.With(prometheus.Labels{"grpc_type": "unary", "grpc_service": serviceName, "grpc_method": serviceMethod}).Observe(float64(time.Since(start).Seconds()))
@@ -186,7 +200,7 @@ func getMessageSize(val interface{}) (int, error) {
 	err := encoder.Encode(val)
 	if err != nil {
 		// ToDo Log error
-		return 0, fmt.Errorf("unable to get message size")
+		return 0, status.Errorf(codes.Internal, "unable to get message size")
 	}
 
 	return binary.Size(buff.Bytes()), nil
@@ -194,7 +208,7 @@ func getMessageSize(val interface{}) (int, error) {
 
 func pushClientMetrics(metrics *ClientMetricStruct) error {
 	InfoLogger.Println("Pushing metrics to gateway")
-	err := push.New(os.Getenv("PUSHGATEWAYHOST")+":9091", "Frontend").
+	err := push.New(os.Getenv("PUSHGATEWAYHOST")+":9091", "DesktopGateway").
 		Collector(*metrics.clientRequestCounter).
 		Collector(*metrics.clientRequestMessageSize).
 		Collector(*metrics.clientResponseCounter).
@@ -213,7 +227,7 @@ func pushClientMetrics(metrics *ClientMetricStruct) error {
 
 func pushServerMetrics(metrics *ServerMetricStruct) error {
 	InfoLogger.Println("Pushing metrics to gateway")
-	err := push.New(os.Getenv("PUSHGATEWAYHOST")+":9091", "Frontend").
+	err := push.New(os.Getenv("PUSHGATEWAYHOST")+":9091", "DesktopGateway").
 		Collector(*metrics.serverRequestCounter).
 		Collector(*metrics.serverLastCallTime).
 		Collector(*metrics.serverResponseCounter).
