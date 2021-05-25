@@ -42,10 +42,6 @@ var (
 	InfoLogger    *log.Logger
 	WarningLogger *log.Logger
 	ErrorLogger   *log.Logger
-
-	// Metric interceptors
-	clientMetricInterceptor *interceptors.ClientMetricStruct
-	serverMetricInterceptor *interceptors.ServerMetricStruct
 )
 
 const (
@@ -80,11 +76,6 @@ func init() {
 	InfoLogger = log.New(file, "INFO: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	WarningLogger = log.New(file, "WARNING: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 	ErrorLogger = log.New(file, "ERROR: ", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
-
-	// Metric interceptor
-	clientMetricInterceptor = interceptors.NewClientMetrics() // Custom metric (Prometheus) interceptor
-	serverMetricInterceptor = interceptors.NewServerMetrics() // Custom metric (Prometheus) interceptor
-
 }
 
 func main() {
@@ -110,7 +101,8 @@ func main() {
 	InfoLogger.Println("Listening on port: ", addrMyself)
 
 	// Create the interceptors required for this connection
-	authInterceptor := interceptors.ServerAuthStruct{ // Custom auth (JWT) interceptor
+	serverMetricInterceptor := interceptors.NewServerMetrics() // Custom metric (Prometheus) interceptor
+	authInterceptor := interceptors.ServerAuthStruct{          // Custom auth (JWT) interceptor
 		JwtManager:           authentication.NewJWTManager(secretkey, tokenduration),
 		AuthenticatedMethods: accessibleRoles(),
 	}
@@ -184,7 +176,7 @@ func (s *loginServer) Login(ctx context.Context, request *serverPB.LoginRequest)
 	InfoLogger.Println("Received Login service call")
 
 	// Create the interceptors required for this connection
-	// metricInterceptor := interceptors.NewClientMetrics() // Custom metric (prometheus) interceptor
+	clientMetricInterceptor := interceptors.NewClientMetrics() // Custom metric (Prometheus) interceptor
 
 	// Create an insecure connection to the server
 	connAuthenticationService, err := createInsecureServerConnection(
@@ -260,8 +252,8 @@ func (s *estimationServer) PowerEstimationSP(ctx context.Context, request *serve
 	md, _ := metadata.FromIncomingContext(ctx)
 
 	// Create the interceptors required for this connection
-	// metricInterceptor := interceptors.NewClientMetrics() // Custom metric (Prometheus) interceptor
-	authInterceptor := interceptors.ClientAuthStruct{ // Custom auth (JWT) interceptor
+	clientMetricInterceptor := interceptors.NewClientMetrics() // Custom metric (Prometheus) interceptor
+	authInterceptor := interceptors.ClientAuthStruct{          // Custom auth (JWT) interceptor
 		AccessToken:          md["authorisation"][0], // Pass the user's JWT to the outgoing request
 		AuthenticatedMethods: authMethods(),
 	}

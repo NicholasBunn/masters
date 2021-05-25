@@ -5,14 +5,15 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/gob"
+	"fmt"
 	"log"
 	"os"
 	"strings"
+	"time"
 
-	prometheus "github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
 
-	// "github.com/prometheus/client_golang/prometheus"
+	prometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
@@ -44,73 +45,139 @@ func init() {
 type ClientMetricStruct struct {
 	/* This struct represents a collection of client-side metrics to be registered on a
 	Prometheus metrics registry */
-	clientRequestCounter      *prometheus.Counter
-	clientResponseCounter     *prometheus.Counter
-	clientRequestMessageSize  *prometheus.Histogram
-	clientResponseMessageSize *prometheus.Histogram
+	clientRequestCounter      *prometheus.CounterVec   // Counts the number of call made by the client
+	clientResponseCounter     *prometheus.CounterVec   // Counts the number of responses received by the client
+	clientRequestMessageSize  *prometheus.HistogramVec // Records the size of the request message sent out
+	clientResponseMessageSize *prometheus.HistogramVec // Records the size of the response message received
 }
 
 type ServerMetricStruct struct {
 	/* This struct represents a collection of server-side metrics to be reqistered on a
 	Prometheus metrics registry */
-	serverCallCounter    *prometheus.Counter
-	serverLastCallTime   *prometheus.Gauge
-	serverRequestLatency *prometheus.Histogram
+	serverRequestCounter  *prometheus.CounterVec   // Counts the number of requests received by the server
+	serverResponseCounter *prometheus.CounterVec   // Counts the number of responses sent by the server
+	serverLastCallTime    *prometheus.GaugeVec     // Records the lat time a call was made to the server
+	serverRequestLatency  *prometheus.HistogramVec // Records the amount of time the server took to serve the call
+}
+
+func NewClientMetrics() *ClientMetricStruct {
+	return &ClientMetricStruct{
+		clientRequestCounter: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "client_request_counter",
+				Help: "The number of requests made by the client",
+			}, []string{"grpc_type", "grpc_service", "grpc_method"}),
+		clientResponseCounter: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "client_response_counter",
+				Help: "The number of responses received by the client",
+			}, []string{"grpc_type", "grpc_service", "grpc_method"}),
+		clientRequestMessageSize: prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name: "client_request_size",
+				Help: "The size (in bytes) of the request sent by the client",
+			}, []string{"grpc_type", "grpc_service", "grpc_method"}),
+		clientResponseMessageSize: prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name: "client_response_size",
+				Help: "The size (in bytes) of the response received by the client",
+			}, []string{"grpc_type", "grpc_service", "grpc_method"}),
+	}
+}
+
+func NewServerMetrics() *ServerMetricStruct {
+	return &ServerMetricStruct{
+		serverRequestCounter: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "server_request_counter",
+				Help: "The number of requests made to the server",
+			}, []string{"grpc_type", "grpc_service", "grpc_method"}),
+		serverResponseCounter: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "server_response_counter",
+				Help: "The number of response sent by the server",
+			}, []string{"grpc_type", "grpc_service", "grpc_method"}),
+		serverLastCallTime: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "server_last_call_time",
+				Help: "The last time a call was made to the server",
+			}, []string{"grpc_type", "grpc_service", "grpc_method"}),
+		serverRequestLatency: prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name: "server_request_latency",
+				Help: "The time it took for the server to serve the request",
+			}, []string{"grpc_type", "grpc_service", "grpc_method"}),
+	}
 }
 
 func (metr *ClientMetricStruct) ClientMetricInterceptor(ctx context.Context, method string, req interface{}, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 	// Client side interceptor, to be attached to all client connections
+
 	InfoLogger.Println("Starting client interceptor method")
+
+	// Extract service and method names
+	requesterInfo := strings.Split(method, "/")
+	serviceName := requesterInfo[1]
+	serviceMethod := requesterInfo[2]
+
+	// Increment the request call counter
+	metr.clientRequestCounter.With(prometheus.Labels{"grpc_type": "unary", "grpc_service": serviceName, "grpc_method": serviceMethod}).Inc()
+
+	// Record request size here
+	size, _ := getMessageSize(req)
+	metr.clientRequestMessageSize.With(prometheus.Labels{"grpc_type": "unary", "grpc_service": serviceName, "grpc_method": serviceMethod}).Observe(float64(size))
 
 	// Run gRPC call here
 	err := invoker(ctx, method, req, reply, cc, opts...)
 
-	requestSize := prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name: "request_size",
-		Help: "The size (in bytes) of the request",
-	})
-	responseSize := prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name: "response_size",
-		Help: "The size (in bytes) of the server's response",
-	})
+	// Increment the response call counter
+	metr.clientResponseCounter.With(prometheus.Labels{"grpc_type": "unary", "grpc_service": serviceName, "grpc_method": serviceMethod}).Inc()
 
-	// Record reply size here
-	size, _ := GetMessageSize(req)
-	requestSize.Observe(float64(size))
+	// Record response size here
+	size, _ = getMessageSize(reply)
+	metr.clientResponseMessageSize.With(prometheus.Labels{"grpc_type": "unary", "grpc_service": serviceName, "grpc_method": serviceMethod}).Observe(float64(size))
 
-	size, _ = GetMessageSize(reply)
-	responseSize.Observe(float64(size))
-
-	if err := push.New("http://127.0.0.1:9091/", "PowerEstimationSP").
-		Collector(requestSize).
-		Collector(responseSize).
-		Grouping("Service", strings.Split(method, "/")[2]).
-		Push(); err != nil {
-		ErrorLogger.Println("Could not push response message size to Pushgateway: \n", err)
-	} else {
-		DebugLogger.Println("Succesfully pushed metrics")
-	}
+	// Push metrics to the pushgateway
+	err = pushClientMetrics(metr)
 
 	return err
 }
 
 func (metr *ServerMetricStruct) ServerMetricInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	// Server-side interceptor, to be attached to all server connections
+
 	InfoLogger.Println("Starting server interceptor method")
 
-	// ________INCREMENT CALL COUNTER________
+	// Extract service and method names
+	requesterInfo := strings.Split(info.FullMethod, "/")
+	serviceName := requesterInfo[1]
+	serviceMethod := requesterInfo[2]
 
-	// ________SET LAST CALL TIME________
+	// Increment the request call counter
+	metr.serverRequestCounter.With(prometheus.Labels{"grpc_type": "unary", "grpc_service": serviceName, "grpc_method": serviceMethod}).Inc()
 
-	// ________SET START TIME________
+	// Set the last call time
+	metr.serverLastCallTime.With(prometheus.Labels{"grpc_type": "unary", "grpc_service": serviceName, "grpc_method": serviceMethod}).SetToCurrentTime()
+
+	// Start the call timer
+	start := time.Now()
 
 	// Run gRPC call here
-	return handler(ctx, req)
+	h, err := handler(ctx, req)
 
-	// ________SET END TIME________
+	// Set the call latency (response time)
+	metr.serverRequestLatency.With(prometheus.Labels{"grpc_type": "unary", "grpc_service": serviceName, "grpc_method": serviceMethod}).Observe(float64(time.Since(start).Seconds()))
+
+	// Increment the response call counter
+	metr.serverResponseCounter.With(prometheus.Labels{"grpc_type": "unary", "grpc_service": serviceName, "grpc_method": serviceMethod}).Inc()
+
+	// Push metrics to the pushgateway
+	err = pushServerMetrics(metr)
+
+	return h, err
 }
 
-func GetMessageSize(val interface{}) (int, error) {
+func getMessageSize(val interface{}) (int, error) {
 	// This function takes in an interface for a gRPC message and returns its
 	// size in bytes.
 	var buff bytes.Buffer
@@ -119,8 +186,46 @@ func GetMessageSize(val interface{}) (int, error) {
 	err := encoder.Encode(val)
 	if err != nil {
 		// ToDo Log error
-		return 0, err
+		return 0, fmt.Errorf("unable to get message size")
 	}
 
 	return binary.Size(buff.Bytes()), nil
+}
+
+func pushClientMetrics(metrics *ClientMetricStruct) error {
+	InfoLogger.Println("Pushing metrics to gateway")
+	err := push.New(os.Getenv("PUSHGATEWAYHOST")+":9091", "Frontend").
+		Collector(*metrics.clientRequestCounter).
+		Collector(*metrics.clientRequestMessageSize).
+		Collector(*metrics.clientResponseCounter).
+		Collector(*metrics.clientResponseMessageSize).
+		Grouping("Role", "Client").
+		Push()
+
+	if err != nil {
+		ErrorLogger.Println("Could not push client metrics to endpoint: \n", err)
+	} else {
+		DebugLogger.Println("Succesfully pushed client metrics to endpoint")
+	}
+
+	return err
+}
+
+func pushServerMetrics(metrics *ServerMetricStruct) error {
+	InfoLogger.Println("Pushing metrics to gateway")
+	err := push.New(os.Getenv("PUSHGATEWAYHOST")+":9091", "Frontend").
+		Collector(*metrics.serverRequestCounter).
+		Collector(*metrics.serverLastCallTime).
+		Collector(*metrics.serverResponseCounter).
+		Collector(*metrics.serverRequestLatency).
+		Grouping("Role", "Server").
+		Push()
+
+	if err != nil {
+		ErrorLogger.Println("Could not push server metrics to endpoint: \n", err)
+	} else {
+		DebugLogger.Println("Succesfully pushed server metrics to endpoint")
+	}
+
+	return err
 }

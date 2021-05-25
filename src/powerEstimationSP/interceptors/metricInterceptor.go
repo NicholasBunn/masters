@@ -138,7 +138,7 @@ func (metr *ClientMetricStruct) ClientMetricInterceptor(ctx context.Context, met
 	metr.clientResponseMessageSize.With(prometheus.Labels{"grpc_type": "unary", "grpc_service": serviceName, "grpc_method": serviceMethod}).Observe(float64(size))
 
 	// Push metrics to the pushgateway
-	err = pushClientMetrics(metr, serviceName)
+	err = pushClientMetrics(metr)
 
 	return err
 }
@@ -172,7 +172,7 @@ func (metr *ServerMetricStruct) ServerMetricInterceptor(ctx context.Context, req
 	metr.serverResponseCounter.With(prometheus.Labels{"grpc_type": "unary", "grpc_service": serviceName, "grpc_method": serviceMethod}).Inc()
 
 	// Push metrics to the pushgateway
-	err = pushServerMetrics(metr, serviceName)
+	err = pushServerMetrics(metr)
 
 	return h, err
 }
@@ -192,13 +192,14 @@ func getMessageSize(val interface{}) (int, error) {
 	return binary.Size(buff.Bytes()), nil
 }
 
-func pushClientMetrics(metrics *ClientMetricStruct, service string) error {
+func pushClientMetrics(metrics *ClientMetricStruct) error {
 	InfoLogger.Println("Pushing metrics to gateway")
-	err := push.New(os.Getenv("PUSHGATEWAYHOST")+":9091", service+"Client").
+	err := push.New(os.Getenv("PUSHGATEWAYHOST")+":9091", "PowerEstimationSP").
 		Collector(*metrics.clientRequestCounter).
 		Collector(*metrics.clientRequestMessageSize).
 		Collector(*metrics.clientResponseCounter).
 		Collector(*metrics.clientResponseMessageSize).
+		Grouping("Role", "Client").
 		Push()
 
 	if err != nil {
@@ -210,13 +211,14 @@ func pushClientMetrics(metrics *ClientMetricStruct, service string) error {
 	return err
 }
 
-func pushServerMetrics(metrics *ServerMetricStruct, serviceName string) error {
+func pushServerMetrics(metrics *ServerMetricStruct) error {
 	InfoLogger.Println("Pushing metrics to gateway")
-	err := push.New(os.Getenv("PUSHGATEWAYHOST")+":9091", serviceName+"Server").
+	err := push.New(os.Getenv("PUSHGATEWAYHOST")+":9091", "PowerEstimationSP").
 		Collector(*metrics.serverRequestCounter).
 		Collector(*metrics.serverLastCallTime).
 		Collector(*metrics.serverResponseCounter).
 		Collector(*metrics.serverRequestLatency).
+		Grouping("Role", "Server").
 		Push()
 
 	if err != nil {

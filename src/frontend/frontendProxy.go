@@ -41,7 +41,7 @@ func main() {
 		fmt.Println("Succesfully loaded TLS certificates")
 	}
 
-	metricInterceptor := interceptors.ClientMetricStruct{}
+	metricInterceptor := interceptors.NewClientMetrics()
 	authInterceptor := interceptors.ClientAuthStruct{}
 	interceptorChain := grpc_middleware.ChainUnaryClient(
 		metricInterceptor.ClientMetricInterceptor,
