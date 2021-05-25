@@ -178,7 +178,7 @@ func (s *loginServer) Login(ctx context.Context, request *serverPB.LoginRequest)
 
 	// Create the interceptors required for this connection
 	clientMetricInterceptor := interceptors.NewClientMetrics() // Custom metric (Prometheus) interceptor
-	// Create the retry options to specify how the client should retry connections
+	// Create the retry options to specify how the client should retry connection interrupts
 	retryOptions := []grpc_retry.CallOption{
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)), // Use exponential backoff to progressively wait longer between retries
 		grpc_retry.WithMax(5), // Set the maximum number of retries
@@ -269,7 +269,7 @@ func (s *estimationServer) PowerEstimationSP(ctx context.Context, request *serve
 		AuthenticatedMethods: authMethods(),
 	}
 
-	// Create the retry options to specify how the client should retry connections
+	// Create the retry options to specify how the client should retry connection interrupts
 	retryOptions := []grpc_retry.CallOption{
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)), // Use exponential backoff to progressively wait longer between retries
 		grpc_retry.WithMax(5), // Set the maximum number of retries

@@ -144,7 +144,7 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 		DebugLogger.Println("Succesfully loaded TLS certificates")
 	}
 
-	// Create the retry options to specify how the client should retry connections
+	// Create the retry options to specify how the client should retry connection interrupts
 	retryOptions := []grpc_retry.CallOption{
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)), // Use exponential backoff to progressively wait longer between retries
 		grpc_retry.WithMax(5), // Set the maximum number of retries
