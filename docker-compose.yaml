@@ -15,6 +15,7 @@ services:
             - southernOcean
         ports:
             - 50051:50051
+        restart: on-failure
 
     preparedataservice:
         build:
@@ -29,6 +30,7 @@ services:
             - southernOcean
         ports: 
             - 50052:50052
+        restart: on-failure
 
     estimateservice:
         build:
@@ -43,6 +45,7 @@ services:
             - southernOcean
         ports: 
             - 50053:50053
+        restart: on-failure
 
     # 501xx Aggregators
     powerestimationsp:
@@ -61,6 +64,8 @@ services:
             - southernOcean
         ports: 
             - 50101:50101
+        restart: on-failure
+
 
     # 502xx Gateways
     desktopgateway:
@@ -78,6 +83,7 @@ services:
             - southernOcean
         ports: 
             - 50201:50201
+        restart: on-failure
 
     authenticationservice:
         build: 
@@ -90,6 +96,8 @@ services:
             - southernOcean
         ports: 
             - 50401:50401
+        restart: on-failure
+
 
     # Envoy proxy
     envoyproxy:
@@ -106,6 +114,7 @@ services:
            - southernOcean
         ports:
             - 9091:9091
+        restart: on-failure
 
     prometheus:
         build:
@@ -117,7 +126,8 @@ services:
         ports:
           - 9090:9090
         command: --web.enable-lifecycle  --config.file=/etc/prometheus/prometheus.yml
-
+        restart: on-failure
+        
 networks:
     southernOcean:
         
