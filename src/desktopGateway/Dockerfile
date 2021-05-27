@@ -13,6 +13,8 @@ RUN mkdir -p $GOPATH/src/github.com/nicholasbunn/masters/src/desktopGateway
 COPY /src/desktopGateway/go.mod src/desktopGateway
 COPY /src/desktopGateway/go.sum src/desktopGateway
 
+COPY /src/desktopGateway/configuration.yaml src/desktopGateway
+
 # Copy over contents into image
 COPY src/desktopGateway/interceptors/ src/desktopGateway/interceptors
 COPY src/desktopGateway/proto/ src/desktopGateway/proto

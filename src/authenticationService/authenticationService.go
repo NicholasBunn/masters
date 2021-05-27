@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	// Rquired packages
+	// Required packages
 	authentication "github.com/nicholasbunn/masters/src/authenticationStuff"
 
 	// gRPC packages

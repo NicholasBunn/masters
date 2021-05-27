@@ -20,7 +20,6 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	// Proto packages
-
 	estimateServicePB "github.com/nicholasbunn/masters/src/estimateService/proto"
 	fetchDataServicePB "github.com/nicholasbunn/masters/src/fetchDataService/proto"
 	serverPB "github.com/nicholasbunn/masters/src/powerEstimationSP/proto"
