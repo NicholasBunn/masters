@@ -1,4 +1,6 @@
+import sys
 import os
+import yaml
 import logging
 from concurrent import futures
 import grpc
@@ -8,6 +10,12 @@ import interceptors.prepareServiceInterceptor as prepareInterceptor
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+
+def loadConfigFile(filepath):
+	with open(os.path.join(sys.path[0], filepath), "r") as f:
+		config = yaml.safe_load(f)
+		serverConfig = config["server"]
+	return serverConfig
 
 def processData(dataSet):
 	# This function takes a (structured) dataFrame as an input, normalises and orders 
@@ -163,7 +171,7 @@ def serve():
 	# Create a secure (TLS encrypted) connection on port 50052
 	creds = loadTLSCredentials()
 	prepareDataHost = os.getenv(key = "PREPAREDATAHOST", default = "localhost") # Receives the hostname from the environmental variables (for Docker network), or defaults to localhost for local testing
-	server.add_secure_port(f"{prepareDataHost}:50052", creds)
+	server.add_secure_port(f'{prepareDataHost}:{config["port"]["myself"]}', creds)
 
 	# Start server and listen for calls on the specified port
 	server.start()
@@ -174,6 +182,9 @@ def serve():
 
 if __name__ == '__main__':
 		
+		# ________LOAD CONFIG FILE________
+	config = loadConfigFile("configuration.yaml")
+
 	# ________LOGGER SETUP________
 	serviceName = __file__.rsplit("/")[-2].rsplit(".")[0]
 	logger = logging.getLogger(serviceName)

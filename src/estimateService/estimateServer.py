@@ -1,5 +1,7 @@
 #	Package imports
+import sys
 import os
+import yaml
 import logging
 from concurrent import futures
 import grpc
@@ -8,6 +10,12 @@ import proto.estimateAPI_pb2_grpc as power_estimation_pb2_grpc
 import interceptors.estimateServiceInterceptor as estimateInterceptor
 import pandas as pd
 from keras import models
+
+def loadConfigFile(filepath):
+	with open(os.path.join(sys.path[0], filepath), "r") as f:
+		config = yaml.safe_load(f)
+		serverConfig = config["server"]
+	return serverConfig
 
 def loadModel(modelType):
 	# This function takes the filename of a model as an input, loads the model, and returns the model object.
@@ -138,7 +146,7 @@ def serve():
 	# Create a secure (TLS encrypted) connection on port 50052
 	creds = loadTLSCredentials()
 	estimateHost = os.getenv(key = "ESTIMATEHOST", default = "localhost") # Receives the hostname from the environmental variables (for Docker network), or defaults to localhost for local testing
-	server.add_secure_port(f"{estimateHost}:50053", creds)
+	server.add_secure_port(f'{estimateHost}:{config["port"]["myself"]}', creds)
 
 	# Start server and listen for calls on the specified port
 	server.start()
@@ -149,7 +157,9 @@ def serve():
 	server.wait_for_termination()
 
 if __name__ == '__main__':
-		
+	# ________LOAD CONFIG FILE________
+	config = loadConfigFile("configuration.yaml")
+
 	# ________LOGGER SETUP________
 	serviceName = __file__.rsplit("/")[0].rsplit(".")[0]
 	logger = logging.getLogger(serviceName)

@@ -1,13 +1,13 @@
 # Server
 server:
   port: 
-    myself: "50051"
+    myself: "50052"
   authentication:
     jwt:
       secretKey: "secret" # Make this something safer
       tokenDuration: 15 # Duration (in minutes) that the token is valid for
     accessLevel:
       name:
-        fetchDataService: "/FetchData/FetchDataService"
+        prepareDataService: "/PrepareData/PrepareEstimateDataService"
       role:
-        fetchDataService: ["admin"]
+        prepareDataService: ["admin"]
