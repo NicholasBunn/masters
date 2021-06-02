@@ -11,8 +11,11 @@ server:
         powerEstimate: "/PowerEstimationServicePackage/PowerEstimatorService"
         powerEvaluator: "/PowerEstimationServicePackage/PowerEvaluatorService"
       role:
-        powerEstimate: "guest"
-        powerEvaluator: "admin"
+        powerEstimate: 
+          - "admin"
+          - "guest"
+        powerEvaluator: 
+          - "admin"
 
 # Client
 client:

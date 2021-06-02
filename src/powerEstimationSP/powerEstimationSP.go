@@ -89,8 +89,8 @@ func init() {
 	fmt.Println(tokenduration)
 
 	accessibleRoles = map[string][]string{
-		config.Server.Authentication.AccessLevel.Name.PowerEstimate:  {config.Server.Authentication.AccessLevel.Role.PowerEstimate},
-		config.Server.Authentication.AccessLevel.Name.PowerEvaluator: {config.Server.Authentication.AccessLevel.Role.PowerEvaluator},
+		config.Server.Authentication.AccessLevel.Name.PowerEstimate:  config.Server.Authentication.AccessLevel.Role.PowerEstimate,
+		config.Server.Authentication.AccessLevel.Name.PowerEvaluator: config.Server.Authentication.AccessLevel.Role.PowerEvaluator,
 	}
 	fmt.Println(accessibleRoles)
 
@@ -177,8 +177,8 @@ type Config struct {
 					PowerEvaluator string `yaml:"powerEvaluator"`
 				} `yaml:"name"`
 				Role struct {
-					PowerEstimate  string `yaml:"powerEstimate"`
-					PowerEvaluator string `yaml:"powerEvaluator"`
+					PowerEstimate  []string `yaml:"powerEstimate"`
+					PowerEvaluator []string `yaml:"powerEvaluator"`
 				} `yaml:"role"`
 			} `yaml:"accessLevel"`
 		} `yaml:"authentication"`

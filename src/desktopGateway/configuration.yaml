@@ -10,7 +10,8 @@ server:
       name:
         powerEstimationSP: "/PowerEstimationServices/PowerEstimationSP"
       role:
-        powerEstimationSP: "admin"
+        powerEstimationSP: 
+          - "admin"
 
 # Client
 client:
