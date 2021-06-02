@@ -13,6 +13,8 @@ RUN mkdir -p $GOPATH/src/github.com/nicholasbunn/masters/src/powerEstimationSP
 COPY /src/powerEstimationSP/go.mod ./src/powerEstimationSP
 COPY /src/powerEstimationSP/go.sum ./src/powerEstimationSP
 
+COPY /src/powerEstimationSP/configuration.yaml src/powerEstimationSP
+
 # Copy over contents into image
 COPY src/powerEstimationSP/interceptors/ ./src/powerEstimationSP/interceptors
 COPY src/powerEstimationSP/proto/ ./src/powerEstimationSP/proto
