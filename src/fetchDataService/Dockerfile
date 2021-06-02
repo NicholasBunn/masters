@@ -13,6 +13,9 @@ COPY TestData /service/TestData
 COPY src/fetchDataService/requirements.txt /service
 COPY src/fetchDataService/fetchServer.py /service
 
+COPY /src/fetchDataService/configuration.yaml /service
+RUN ls /service
+
 # Basically performing cd inside the image and setting the work directory
 WORKDIR /service
 

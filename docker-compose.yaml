@@ -98,7 +98,6 @@ services:
             - 50401:50401
         restart: on-failure
 
-
     # Envoy proxy
     envoyproxy:
         build:

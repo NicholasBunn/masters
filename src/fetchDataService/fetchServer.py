@@ -1,6 +1,7 @@
 #Package imports
 import sys
 import os
+import yaml
 import logging
 from concurrent import futures
 import grpc
@@ -10,6 +11,12 @@ import interceptors.fetchDataServiceInterceptor as fetchDataInterceptor
 import pandas as pd
 
 # ToDo: Look at how to get/distribute TLS certs to containers, maybe have a certification service in its own container?
+
+def loadConfigFile(filepath):
+	with open(os.path.join(sys.path[0], filepath), "r") as f:
+		config = yaml.safe_load(f)
+		serverConfig = config["server"]
+	return serverConfig
 
 def importData(excelFileName):
 	# This function receives a filename ("filename.xlsx") as an input, reads it into a Pandas dataframe, and returns the generated dataFrame
@@ -122,7 +129,7 @@ def serve():
 	# Create a secure (TLS encrypted) connection on port 50052
 	creds = loadTLSCredentials()
 	fetchDataHost = os.getenv(key = "FETCHDATAHOST", default = "localhost") # Receives the hostname from the environmental variables (for Docker network), or defaults to localhost for local testing
-	server.add_secure_port(f"{fetchDataHost}:50051", creds)
+	server.add_secure_port(f'{fetchDataHost}:{config["port"]["myself"]}', creds)
 
 	# Start server and listen for calls on the specified port
 	server.start()
@@ -132,6 +139,8 @@ def serve():
 	server.wait_for_termination()
 
 if __name__ == '__main__':
+	# ________LOAD CONFIG FILE________
+	config = loadConfigFile("configuration.yaml")
 
 	# ________LOGGER SETUP________
 	serviceName = __file__.rsplit("/")[-2].rsplit(".")[0]
