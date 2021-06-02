@@ -1,0 +1,34 @@
+# Server
+server:
+  port: 
+    myself: "50101"
+  authentication:
+    jwt:
+      secretKey: "secret" # Make this something safer
+      tokenDuration: 15 # Duration (in minutes) that the token is valid for
+    accessLevel:
+      name:
+        powerEstimate: "/PowerEstimationServicePackage/PowerEstimatorService"
+        powerEvaluator: "/PowerEstimationServicePackage/PowerEvaluatorService"
+      role:
+        powerEstimate: "guest"
+        powerEvaluator: "admin"
+
+# Client
+client:
+  port:
+    fetch: "50051"
+    prepare: "50052"
+    estimation: "50053"
+  timeout:
+    connection: 5
+    call: 15
+  authenticatedMethods:
+    name:
+      fetchDataService: "/FetchData/FetchDataService/"
+      prepareDataService: "/PrepareData/PrepareEstimateDataService/"
+      estimateService: "/EstimatePower/EstimatePowerService/"
+    requiresAuthentication:
+      fetchDataService: false
+      prepareDataService: false
+      estimateService: false

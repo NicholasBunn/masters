@@ -72,11 +72,8 @@ func init() {
 
 	// Load port addresses from config
 	addrMyself = os.Getenv("DESKTOPGATEWAYHOST") + ":" + config.Server.Port.Myself
-	fmt.Println(addrMyself)
 	addrEstimationSP = os.Getenv("POWERESTIMATIONHOST") + ":" + config.Client.Port.EstimationSP
-	fmt.Println(addrEstimationSP)
 	addrAuthenticationService = os.Getenv("AUTHENTICATIONHOST") + ":" + config.Client.Port.AuthenticationService
-	fmt.Println(addrAuthenticationService)
 
 	// Load timeouts from config
 	timeoutDuration = config.Client.Timeout.Connection
