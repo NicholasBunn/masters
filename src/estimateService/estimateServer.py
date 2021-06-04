@@ -162,7 +162,7 @@ if __name__ == '__main__':
 	config = loadConfigFile("configuration.yaml")
 
 	# ________LOGGER SETUP________
-	serviceName = __file__.rsplit("/")[-2].rsplit(".")[0]
+	serviceName = __file__.rsplit("/")[0].rsplit(".")[0]
 	logger = logging.getLogger(serviceName)
 	logger.setLevel(logging.DEBUG)
 
