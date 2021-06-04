@@ -13,6 +13,8 @@ RUN mkdir -p $GOPATH/src/github.com/nicholasbunn/masters/src/authenticationServi
 COPY /src/authenticationService/go.mod src/authenticationService
 COPY /src/authenticationService/go.sum src/authenticationService
 
+COPY /src/authenticationService/configuration.yaml src/authenticationService
+
 # Copy over contents into image
 # COPY src/authenticationService/interceptors/ src/authenticationService/interceptors
 COPY src/authenticationService/proto/ src/authenticationService/proto

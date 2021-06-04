@@ -12,6 +12,8 @@ COPY certification/ /service/certification
 COPY src/prepareDataService/requirements.txt /service
 COPY src/prepareDataService/prepareServer.py /service
 
+COPY /src/prepareDataService/configuration.yaml /service
+
 # Basically performing cd inside the image and setting the work directory
 WORKDIR /service
 

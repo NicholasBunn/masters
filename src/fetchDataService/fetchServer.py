@@ -1,15 +1,23 @@
 #Package imports
 import sys
 import os
+import yaml
 import logging
 from concurrent import futures
 import grpc
 import proto.fetchDataAPI_pb2 as fetch_data_api_pb2
 import proto.fetchDataAPI_pb2_grpc as fetch_data_api_pb2_grpc
-import interceptors.fetchDataServiceInterceptor as fetchDataInterceptor
+import interceptors.metricInterceptor as metricInterceptor
+import interceptors.authenticationInterceptor as authenticationInterceptor
 import pandas as pd
 
 # ToDo: Look at how to get/distribute TLS certs to containers, maybe have a certification service in its own container?
+
+def loadConfigFile(filepath):
+	with open(os.path.join(sys.path[0], filepath), "r") as f:
+		config = yaml.safe_load(f)
+		serverConfig = config["server"]
+	return serverConfig
 
 def importData(excelFileName):
 	# This function receives a filename ("filename.xlsx") as an input, reads it into a Pandas dataframe, and returns the generated dataFrame
@@ -108,7 +116,7 @@ def serve():
 	# This function creates a server with specified interceptors, registers the service calls offered by that server, and exposes
 	# the server over a specified port. The connection to this port is secured with server-side TLS encryption.
 
-	activeInterceptors = [fetchDataInterceptor.MetricInterceptor()] # List containing the interceptors to be chained
+	activeInterceptors = [metricInterceptor.MetricInterceptor(), authenticationInterceptor.AuthenticationInterceptor("secret", 15, {"/fetchData.FetchData/FetchDataService": ["admin"]})] # List containing the interceptors to be chained
 
 	# Create a server to serve calls in its own thread
 	server = grpc.server(
@@ -122,7 +130,7 @@ def serve():
 	# Create a secure (TLS encrypted) connection on port 50052
 	creds = loadTLSCredentials()
 	fetchDataHost = os.getenv(key = "FETCHDATAHOST", default = "localhost") # Receives the hostname from the environmental variables (for Docker network), or defaults to localhost for local testing
-	server.add_secure_port(f"{fetchDataHost}:50051", creds)
+	server.add_secure_port(f'{fetchDataHost}:{config["port"]["myself"]}', creds)
 
 	# Start server and listen for calls on the specified port
 	server.start()
@@ -132,6 +140,8 @@ def serve():
 	server.wait_for_termination()
 
 if __name__ == '__main__':
+	# ________LOAD CONFIG FILE________
+	config = loadConfigFile("configuration.yaml")
 
 	# ________LOGGER SETUP________
 	serviceName = __file__.rsplit("/")[-2].rsplit(".")[0]

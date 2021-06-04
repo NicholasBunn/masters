@@ -3,13 +3,15 @@ package main
 import (
 	// Native packages
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"os"
 	"strings"
 	"time"
 
-	// Rquired packages
+	// Required packages
+	"github.com/go-yaml/yaml"
 	authentication "github.com/nicholasbunn/masters/src/authenticationStuff"
 
 	// gRPC packages
@@ -22,8 +24,12 @@ import (
 )
 
 var (
-	// Addresses (To be passed in a config file)
-	addrMyself = os.Getenv("AUTHENTICATIONHOST") + ":50401"
+	// Addresses
+	addrMyself string
+
+	// JWT stuff, load this in from config
+	secretKey     string
+	tokenDuration time.Duration
 
 	// Logging stuff
 	DebugLogger   *log.Logger
@@ -32,19 +38,20 @@ var (
 	ErrorLogger   *log.Logger
 )
 
-const (
-	// Timeouts (to be passed in a config file)
-	timeoutDuration     = 5                // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
-	callTimeoutDuration = 15 * time.Second // The time, in seconds, that the client should wait when making a call to the server before throwing an error
-
-	// JWT token information (to be passed in a config file)
-	secretKey     = "secret"
-	tokenDuration = 15 * time.Minute
-)
-
 func init() {
-	/* The init functin is used to set up the logger whenever the service is started
+	/* The init functin is used to load in configuration variables, and set up the logger and metric interceptors whenever the service is started
 	 */
+
+	// ________CONFIGURATION________
+	// Load YAML configurations into config struct
+	config, _ := DecodeConfig("src/authenticationService/configuration.yaml")
+
+	// Load port addresses from config
+	addrMyself = os.Getenv("AUTHENTICATIONHOST") + ":" + config.Server.Port.Myself
+
+	// Load JWT parameters from config
+	secretKey = config.Server.Authentication.Jwt.SecretKey
+	tokenDuration = time.Duration(config.Server.Authentication.Jwt.TokenDuration) * (time.Minute)
 
 	// If the file doesn't exist, create it, otherwise append to the file
 	pathSlice := strings.Split(os.Args[0], "/") // This just extracts the services name (filename)
@@ -100,7 +107,21 @@ func main() {
 	}
 }
 
-// ________STRUCTS TO IMPLEMENT THE OFFERED SERVICES________
+// ________REQUIRED STRUCTURES________
+
+type Config struct {
+	Server struct {
+		Port struct {
+			Myself string `yaml:"myself"`
+		} `yaml:"port"`
+		Authentication struct {
+			Jwt struct {
+				SecretKey     string `yaml:"secretKey"`
+				TokenDuration int    `yaml:"tokenDuration"`
+			} `yaml:"jwt"`
+		} `yaml:"authentication"`
+	} `yaml:"server"`
+}
 
 type authServer struct {
 	// Use this to implement the authentication service
@@ -150,6 +171,30 @@ func (s *authServer) LoginAuth(ctx context.Context, request *serverPB.LoginAuthR
 }
 
 // ________SUPPORTING FUNCTIONS________
+
+func DecodeConfig(configPath string) (*Config, error) {
+	// Create a new config structure
+	config := &Config{}
+
+	// Open the config file
+	file, err := os.Open(configPath)
+	if err != nil {
+		fmt.Println("Could not open config file")
+		return nil, err
+	}
+	defer file.Close()
+
+	// Initialise a new YAML decoder
+	decoder := yaml.NewDecoder(file)
+
+	// Start YAML decoding from file
+	if err := decoder.Decode(&config); err != nil {
+		fmt.Println("Could not decode config file: \n", err)
+		return nil, err
+	}
+
+	return config, nil
+}
 
 func save(user *authentication.User) error {
 	// Still need to implement

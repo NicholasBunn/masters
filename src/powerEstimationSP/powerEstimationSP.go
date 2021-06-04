@@ -14,13 +14,14 @@ import (
 	"time"
 
 	// gRPC packages
+	"github.com/go-yaml/yaml"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
 
 	// Proto packages
-
 	estimateServicePB "github.com/nicholasbunn/masters/src/estimateService/proto"
 	fetchDataServicePB "github.com/nicholasbunn/masters/src/fetchDataService/proto"
 	serverPB "github.com/nicholasbunn/masters/src/powerEstimationSP/proto"
@@ -32,10 +33,25 @@ import (
 
 var (
 	// Addresses (To be passed in a config file)
-	addrMyself = os.Getenv("POWERESTIMATIONHOST") + ":50101"
-	addrFS     = os.Getenv("FETCHHOST") + ":50051"
-	addrPS     = os.Getenv("PREPAREHOST") + ":50052"
-	addrES     = os.Getenv("ESTIMATEHOST") + ":50053"
+	addrMyself string
+	addrFS     string
+	addrPS     string
+	addrES     string
+
+	timeoutDuration     int           // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
+	callTimeoutDuration time.Duration // The time, in seconds, that the client should wait when making a call to the server before throwing an error
+
+	// Input parameters (To be passed through the frontend)
+	INPUTfilename = "TestData/CMU_2019_2020_openWater.xlsx" // MEEP Need to pass a path relative to the execution directory
+	MODELTYPE     = "OPENWATER"
+
+	// JWT stuff, load this in from config
+	secretkey     string
+	tokenduration time.Duration
+
+	accessibleRoles map[string][]string // This is a map of service calls with their required permission levels
+
+	authMethods map[string]bool // This is a map of which service calls require authentication
 
 	// Logging stuff
 	DebugLogger   *log.Logger
@@ -48,15 +64,43 @@ var (
 	serverMetricInterceptor *interceptors.ServerMetricStruct
 )
 
-const (
-	// Timeouts (To be passed in a config file)
-	timeoutDuration     = 5                // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
-	callTimeoutDuration = 15 * time.Second // The time, in seconds, that the client should wait when making a call to the server before throwing an error
-)
-
 func init() {
-	/* The init functin is used to set up the logger whenever the service is started
+	/* The init function is used to load in configuration variables, and set up the logger and metric interceptors whenever the service is started
 	 */
+
+	// ________CONFIGURATION________
+	// Load YAML configurations into config struct
+	config, _ := DecodeConfig("src/powerEstimationSP/configuration.yaml")
+
+	addrMyself = os.Getenv("POWERESTIMATIONHOST") + ":" + config.Server.Port.Myself
+	addrFS = os.Getenv("FETCHHOST") + ":" + config.Client.Port.FetchService
+	addrPS = os.Getenv("PREPAREHOST") + ":" + config.Client.Port.PrepareService
+	addrES = os.Getenv("ESTIMATEHOST") + ":" + config.Client.Port.EstimationService
+
+	// Load timeouts from config
+	timeoutDuration = config.Client.Timeout.Connection
+	fmt.Println(timeoutDuration)
+	callTimeoutDuration = time.Duration(config.Client.Timeout.Call) * time.Second
+	fmt.Println(callTimeoutDuration)
+
+	// Load JWT parameters from config
+	secretkey = config.Server.Authentication.Jwt.SecretKey
+	fmt.Println(secretkey)
+	tokenduration = time.Duration(config.Server.Authentication.Jwt.TokenDuration) * (time.Minute)
+	fmt.Println(tokenduration)
+
+	accessibleRoles = map[string][]string{
+		config.Server.Authentication.AccessLevel.Name.PowerEstimate:  config.Server.Authentication.AccessLevel.Role.PowerEstimate,
+		config.Server.Authentication.AccessLevel.Name.PowerEvaluator: config.Server.Authentication.AccessLevel.Role.PowerEvaluator,
+	}
+	fmt.Println(accessibleRoles)
+
+	authMethods = map[string]bool{
+		config.Client.AuthenticatedMethods.Name.FetchDataService:   config.Client.AuthenticatedMethods.RequiresAuthentication.FetchDataService,
+		config.Client.AuthenticatedMethods.Name.PrepareDataService: config.Client.AuthenticatedMethods.RequiresAuthentication.PrepareDataService,
+		config.Client.AuthenticatedMethods.Name.EstimateService:    config.Client.AuthenticatedMethods.RequiresAuthentication.EstimateService,
+	}
+	fmt.Println(authMethods)
 
 	// If the file doesn't exist, create it, otherwise append to the file
 	pathSlice := strings.Split(os.Args[0], "/") // This just extracts the services name (filename)
@@ -116,7 +160,55 @@ func main() {
 	}
 }
 
-// ________STRUCTS TO IMPLEMENT THE OFFERED SERVICES________
+// ________REQUIRED STRUCTS________
+
+type Config struct {
+	Server struct {
+		Port struct {
+			Myself string `yaml:"myself"`
+		} `yaml:"port"`
+		Authentication struct {
+			Jwt struct {
+				SecretKey     string `yaml:"secretKey"`
+				TokenDuration int    `yaml:"tokenDuration"`
+			} `yaml:"jwt"`
+			AccessLevel struct {
+				Name struct {
+					PowerEstimate  string `yaml:"powerEstimate"`
+					PowerEvaluator string `yaml:"powerEvaluator"`
+				} `yaml:"name"`
+				Role struct {
+					PowerEstimate  []string `yaml:"powerEstimate"`
+					PowerEvaluator []string `yaml:"powerEvaluator"`
+				} `yaml:"role"`
+			} `yaml:"accessLevel"`
+		} `yaml:"authentication"`
+	} `yaml:"server"`
+
+	Client struct {
+		Port struct {
+			FetchService      string `yaml:"fetch"`
+			PrepareService    string `yaml:"prepare"`
+			EstimationService string `yaml:"estimation"`
+		} `yaml:"port"`
+		Timeout struct {
+			Connection int `yaml:"connection"`
+			Call       int `yaml:"call"`
+		} `yaml:"timeout"`
+		AuthenticatedMethods struct {
+			Name struct {
+				FetchDataService   string `yaml:"fetchDataService"`
+				PrepareDataService string `yaml:"prepareDataService"`
+				EstimateService    string `yaml:"estimateService"`
+			} `yaml:"name"`
+			RequiresAuthentication struct {
+				FetchDataService   bool `yaml:"fetchDataService"`
+				PrepareDataService bool `yaml:"prepareDataService"`
+				EstimateService    bool `yaml:"estimateService"`
+			} `yaml:"requiresAuthentication"`
+		} `yaml:"authenticatedMethods"`
+	} `yaml:"client"`
+}
 
 type server struct {
 	// Use this to implement the power estimation service package
@@ -144,6 +236,15 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 		DebugLogger.Println("Succesfully loaded TLS certificates")
 	}
 
+	// Extract the user's JWT from the incoming request. Can ignore the ok output as ths has already been checked.
+	md, _ := metadata.FromIncomingContext(ctx)
+
+	// Create the interceptors required for this connection
+	clientAuthInterceptor := interceptors.ClientAuthStruct{ // Custom auth (JWT) interceptor
+		AccessToken:          md["authorisation"][0], // Pass the user's JWT to the outgoing request
+		AuthenticatedMethods: authMethods,
+	}
+
 	// Create the retry options to specify how the client should retry connection interrupts
 	retryOptions := []grpc_retry.CallOption{
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)), // Use exponential backoff to progressively wait longer between retries
@@ -153,6 +254,7 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 	// Create an interceptor chain with the above interceptors
 	interceptorChain := grpc_middleware.ChainUnaryClient(
 		clientMetricInterceptor.ClientMetricInterceptor,
+		clientAuthInterceptor.ClientAuthInterceptor,
 		grpc_retry.UnaryClientInterceptor(retryOptions...),
 	)
 
@@ -331,6 +433,30 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 }
 
 // ________SUPPORTING FUNCTIONS________
+
+func DecodeConfig(configPath string) (*Config, error) {
+	// Create a new config structure
+	config := &Config{}
+
+	// Open the config file
+	file, err := os.Open(configPath)
+	if err != nil {
+		fmt.Println("Could not open config file")
+		return nil, err
+	}
+	defer file.Close()
+
+	// Initialise a new YAML decoder
+	decoder := yaml.NewDecoder(file)
+
+	// Start YAML decoding from file
+	if err := decoder.Decode(&config); err != nil {
+		fmt.Println("Could not decode config file: \n", err)
+		return nil, err
+	}
+
+	return config, nil
+}
 
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
 	/* This (unexported) function loads TLS credentials for both the client and server,

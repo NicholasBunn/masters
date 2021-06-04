@@ -13,6 +13,8 @@ COPY Models/ /service/Models
 COPY src/estimateService/requirements.txt /service
 COPY src/estimateService/estimateServer.py /service
 
+COPY /src/estimateService/configuration.yaml /service
+
 # Basically performing cd inside the image and setting the work directory
 WORKDIR /service
 

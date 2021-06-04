@@ -139,6 +139,8 @@ func (metr *ClientMetricStruct) ClientMetricInterceptor(ctx context.Context, met
 	err := invoker(ctx, method, req, reply, cc, opts...)
 	if err != nil {
 		ErrorLogger.Println("Failed to make service call from client-side metric interceptor: \n", err)
+		_ = pushClientMetrics(metr)
+		return err
 	}
 
 	// Increment the response call counter
@@ -177,6 +179,8 @@ func (metr *ServerMetricStruct) ServerMetricInterceptor(ctx context.Context, req
 	h, err := handler(ctx, req)
 	if err != nil {
 		ErrorLogger.Println("Failed to make service call from server-side metric interceptor: \n", err)
+		_ = pushServerMetrics(metr)
+		return h, err
 	}
 
 	// Set the call latency (response time)

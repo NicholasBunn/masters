@@ -14,6 +14,8 @@ import (
 	"time"
 
 	// Required packages
+
+	"github.com/go-yaml/yaml"
 	authentication "github.com/nicholasbunn/masters/src/authenticationStuff"
 
 	// gRPC packages
@@ -33,10 +35,25 @@ import (
 )
 
 var (
-	// Addresses (To be passed in a config file)
-	addrMyself                = os.Getenv("DESKTOPGATEWAYHOST") + ":50201"
-	addrEstimationSP          = os.Getenv("POWERESTIMATIONHOST") + ":50101"
-	addrAuthenticationService = os.Getenv("AUTHENTICATIONHOST") + ":50401"
+	// Addresses
+	addrMyself                string
+	addrEstimationSP          string
+	addrAuthenticationService string
+
+	timeoutDuration     int           // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
+	callTimeoutDuration time.Duration // The time, in seconds, that the client should wait when making a call to the server before throwing an error
+
+	// Input parameters (To be passed through the frontend)
+	INPUTfilename = "TestData/CMU_2019_2020_openWater.xlsx" // MEEP Need to pass a path relative to the execution directory
+	MODELTYPE     = "OPENWATER"
+
+	// JWT stuff, load this in from config
+	secretkey     string
+	tokenduration time.Duration
+
+	accessibleRoles map[string][]string // This is a map of service calls with their required permission levels
+
+	authMethods map[string]bool // This is a map of which service calls require authentication
 
 	// Logging stuff
 	DebugLogger   *log.Logger
@@ -45,24 +62,42 @@ var (
 	ErrorLogger   *log.Logger
 )
 
-const (
-	// Timeouts (to be passed in a config file)
-	timeoutDuration     = 5                // The time, in seconds, that the client should wait when dialing (connecting to) the server before throwing an error
-	callTimeoutDuration = 15 * time.Second // The time, in seconds, that the client should wait when making a call to the server before throwing an error
-
-	// Input parameters (To be passed through the frontend)
-	INPUTfilename = "TestData/CMU_2019_2020_openWater.xlsx" // MEEP Need to pass a path relative to the execution directory
-	MODELTYPE     = "OPENWATER"
-
-	// JWT stuff, load this in from config
-	secretkey     = "secret"
-	tokenduration = 15 * time.Minute
-)
-
 func init() {
-	/* The init functin is used to set up the logger and metric interceptors whenever the service is started
+	/* The init functin is used to load in configuration variables, and set up the logger and metric interceptors whenever the service is started
 	 */
 
+	// ________CONFIGURATION________
+	// Load YAML configurations into config struct
+	config, _ := DecodeConfig("src/desktopGateway/configuration.yaml")
+
+	// Load port addresses from config
+	addrMyself = os.Getenv("DESKTOPGATEWAYHOST") + ":" + config.Server.Port.Myself
+	addrEstimationSP = os.Getenv("POWERESTIMATIONHOST") + ":" + config.Client.Port.EstimationSP
+	addrAuthenticationService = os.Getenv("AUTHENTICATIONHOST") + ":" + config.Client.Port.AuthenticationService
+
+	// Load timeouts from config
+	timeoutDuration = config.Client.Timeout.Connection
+	fmt.Println(timeoutDuration)
+	callTimeoutDuration = time.Duration(config.Client.Timeout.Call) * time.Second
+	fmt.Println(callTimeoutDuration)
+
+	// Load JWT parameters from config
+	secretkey = config.Server.Authentication.Jwt.SecretKey
+	fmt.Println(secretkey)
+	tokenduration = time.Duration(config.Server.Authentication.Jwt.TokenDuration) * (time.Minute)
+	fmt.Println(tokenduration)
+
+	accessibleRoles = map[string][]string{
+		config.Server.Authentication.AccessLevel.Name.PowerEstimationSP: config.Server.Authentication.AccessLevel.Role.PowerEstimationSP,
+	}
+	fmt.Println(accessibleRoles)
+
+	authMethods = map[string]bool{
+		config.Client.AuthenticatedMethods.Name.PowerEstimationSP: config.Client.AuthenticatedMethods.RequiresAuthentication.PowerEstimaitonSP,
+	}
+	fmt.Println(authMethods)
+
+	// ________LOGGING________
 	// If the file doesn't exist, create it, otherwise append to the file
 	pathSlice := strings.Split(os.Args[0], "/") // This just extracts the services name (filename)
 	file, err := os.OpenFile("program logs/"+pathSlice[len(pathSlice)-1]+".log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
@@ -105,7 +140,7 @@ func main() {
 	serverMetricInterceptor := interceptors.NewServerMetrics() // Custom metric (Prometheus) interceptor
 	authInterceptor := interceptors.ServerAuthStruct{          // Custom auth (JWT) interceptor
 		JwtManager:           authentication.NewJWTManager(secretkey, tokenduration),
-		AuthenticatedMethods: accessibleRoles(),
+		AuthenticatedMethods: accessibleRoles,
 	}
 	// Create an interceptor chain with the above interceptors
 	interceptorChain := grpc_middleware.ChainUnaryServer(
@@ -132,27 +167,48 @@ func main() {
 	}
 }
 
-func accessibleRoles() map[string][]string {
-	/* This (unexported) function returns a map of service calls with their required permission levels
-	(to be passed in through config file) */
+// ________REQUIRED STRUCTURES_______
 
-	return map[string][]string{
-		"/src/fetchDataService":                      {"admin"},
-		"/src/prepareDataService":                    {"admin"},
-		"/src/estimateService":                       {"admin"},
-		"/PowerEstimationServices/PowerEstimationSP": {"admin"},
-	}
+type Config struct {
+	Server struct {
+		Port struct {
+			Myself string `yaml:"myself"`
+		} `yaml:"port"`
+		Authentication struct {
+			Jwt struct {
+				SecretKey     string `yaml:"secretKey"`
+				TokenDuration int    `yaml:"tokenDuration"`
+			} `yaml:"jwt"`
+			AccessLevel struct {
+				Name struct {
+					PowerEstimationSP string `yaml:"powerEstimationSP"`
+				} `yaml:"name"`
+				Role struct {
+					PowerEstimationSP []string `yaml:"powerEstimationSP"`
+				} `yaml:"role"`
+			} `yaml:"accessLevel"`
+		} `yaml:"authentication"`
+	} `yaml:"server"`
+
+	Client struct {
+		Port struct {
+			EstimationSP          string `yaml:"estimationSP"`
+			AuthenticationService string `yaml:"authenticationService"`
+		} `yaml:"port"`
+		Timeout struct {
+			Connection int `yaml:"connection"`
+			Call       int `yaml:"call"`
+		} `yaml:"timeout"`
+		AuthenticatedMethods struct {
+			Name struct {
+				PowerEstimationSP string `yaml:"powerEstimationSP"`
+			} `yaml:"name"`
+			RequiresAuthentication struct {
+				PowerEstimaitonSP bool `yaml:"powerEstimationSP"`
+			} `yaml:"requiresAuthentication"`
+		} `yaml:"authenticatedMethods"`
+	} `yaml:"client"`
 }
-
-func authMethods() map[string]bool {
-	/* This (unexported) function returns a map of which service calls require authentication (to be passed in through config file) */
-
-	return map[string]bool{
-		"/PowerEstimationServicePackage/PowerEstimatorService": true,
-	}
-}
-
-// ________STRUCTS TO IMPLEMENT THE OFFERED SERVICES________
 
 type loginServer struct {
 	// Use this to implement the login service routing
@@ -266,7 +322,7 @@ func (s *estimationServer) PowerEstimationSP(ctx context.Context, request *serve
 	clientMetricInterceptor := interceptors.NewClientMetrics() // Custom metric (Prometheus) interceptor
 	authInterceptor := interceptors.ClientAuthStruct{          // Custom auth (JWT) interceptor
 		AccessToken:          md["authorisation"][0], // Pass the user's JWT to the outgoing request
-		AuthenticatedMethods: authMethods(),
+		AuthenticatedMethods: authMethods,
 	}
 
 	// Create the retry options to specify how the client should retry connection interrupts
@@ -328,6 +384,30 @@ func (s *estimationServer) PowerEstimationSP(ctx context.Context, request *serve
 }
 
 // ________SUPPORTING FUNCTIONS________
+
+func DecodeConfig(configPath string) (*Config, error) {
+	// Create a new config structure
+	config := &Config{}
+
+	// Open the config file
+	file, err := os.Open(configPath)
+	if err != nil {
+		fmt.Println("Could not open config file")
+		return nil, err
+	}
+	defer file.Close()
+
+	// Initialise a new YAML decoder
+	decoder := yaml.NewDecoder(file)
+
+	// Start YAML decoding from file
+	if err := decoder.Decode(&config); err != nil {
+		fmt.Println("Could not decode config file: \n", err)
+		return nil, err
+	}
+
+	return config, nil
+}
 
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
 	/* This function loads TLS credentials for both the client and server,
