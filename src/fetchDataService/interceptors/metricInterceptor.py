@@ -59,6 +59,6 @@ class MetricInterceptor(ServerInterceptor):
 
 	@sendMetrics
 	def intercept(self, method, request, context, methodName):
-		logger.info("Starting interceptor method")
+		logger.info("Starting server-side metric interceptor method")
 
 		return method(request, context)    

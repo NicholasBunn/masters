@@ -7,7 +7,8 @@ from concurrent import futures
 import grpc
 import proto.fetchDataAPI_pb2 as fetch_data_api_pb2
 import proto.fetchDataAPI_pb2_grpc as fetch_data_api_pb2_grpc
-import interceptors.fetchDataServiceInterceptor as fetchDataInterceptor
+import interceptors.metricInterceptor as metricInterceptor
+import interceptors.authenticationInterceptor as authenticationInterceptor
 import pandas as pd
 
 # ToDo: Look at how to get/distribute TLS certs to containers, maybe have a certification service in its own container?
@@ -115,7 +116,7 @@ def serve():
 	# This function creates a server with specified interceptors, registers the service calls offered by that server, and exposes
 	# the server over a specified port. The connection to this port is secured with server-side TLS encryption.
 
-	activeInterceptors = [fetchDataInterceptor.MetricInterceptor()] # List containing the interceptors to be chained
+	activeInterceptors = [metricInterceptor.MetricInterceptor(), authenticationInterceptor.AuthenticationInterceptor("secret", 15, {"/fetchData.FetchData/FetchDataService": ["admin"]})] # List containing the interceptors to be chained
 
 	# Create a server to serve calls in its own thread
 	server = grpc.server(

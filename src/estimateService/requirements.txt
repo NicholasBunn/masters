@@ -7,3 +7,4 @@ grpcio
 grpc_interceptor
 prometheus_client
 pyyaml
+pyjwt

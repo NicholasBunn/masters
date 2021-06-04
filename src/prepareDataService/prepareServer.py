@@ -6,7 +6,8 @@ from concurrent import futures
 import grpc
 import proto.prepareDataAPI_pb2 as power_estimation_pb2
 import proto.prepareDataAPI_pb2_grpc as power_estimation_pb2_grpc
-import interceptors.prepareServiceInterceptor as prepareInterceptor
+import interceptors.metricInterceptor as metricInterceptor
+import interceptors.authenticationInterceptor as authenticationInterceptor
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
@@ -157,7 +158,7 @@ def serve():
 	# This function creates a server with specified interceptors, registers the service calls offered by that server, and exposes
 	# the server over a specified port. The connection to this port is secured with server-side TLS encryption.
 
-	activeInterceptors = [prepareInterceptor.MetricInterceptor()] # List containing the interceptors to be chained
+	activeInterceptors = [metricInterceptor.MetricInterceptor(), authenticationInterceptor.AuthenticationInterceptor("secret", 15, {"/prepareData.PrepareData/PrepareEstimateDataService": ["admin"]})] # List containing the interceptors to be chained
 
 	# Create a server to serve calls
 	server = grpc.server(

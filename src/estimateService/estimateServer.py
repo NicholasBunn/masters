@@ -7,7 +7,8 @@ from concurrent import futures
 import grpc
 import proto.estimateAPI_pb2 as power_estimation_pb2
 import proto.estimateAPI_pb2_grpc as power_estimation_pb2_grpc
-import interceptors.estimateServiceInterceptor as estimateInterceptor
+import interceptors.metricInterceptor as metricInterceptor
+import interceptors.authenticationInterceptor as authenticationInterceptor
 import pandas as pd
 from keras import models
 
@@ -132,7 +133,7 @@ def loadTLSCredentials():
 def serve():
 	# This function creates a server with specified interceptors, registers the service calls offered by that server, and exposes the server over a specified port. The connection to this port is secured with server-side TLS encryption.
 
-	activeInterceptors = [estimateInterceptor.MetricInterceptor()] # List containing the interceptors to be chained
+	activeInterceptors = [metricInterceptor.MetricInterceptor(), authenticationInterceptor.AuthenticationInterceptor("secret", 15, {"/estimate.EstimatePower/EstimatePowerService": ["admin"]})] # List containing the interceptors to be chained
 
 	# Create a server to serve calls
 	server = grpc.server(
@@ -161,14 +162,14 @@ if __name__ == '__main__':
 	config = loadConfigFile("configuration.yaml")
 
 	# ________LOGGER SETUP________
-	serviceName = __file__.rsplit("/")[0].rsplit(".")[0]
+	serviceName = __file__.rsplit("/")[-2].rsplit(".")[0]
 	logger = logging.getLogger(serviceName)
 	logger.setLevel(logging.DEBUG)
 
 	# Set the fields to be included in the logs
 	formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(module)s:%(funcName)s:%(message)s')
 
-	fileHandler = logging.FileHandler("program logs/"+serviceName+".log")
+	fileHandler = logging.FileHandler("program logs/" + serviceName + ".log")
 	fileHandler.setFormatter(formatter)
 
 	logger.addHandler(fileHandler)

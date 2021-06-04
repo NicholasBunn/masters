@@ -19,6 +19,7 @@ import (
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
 
 	// Proto packages
 	estimateServicePB "github.com/nicholasbunn/masters/src/estimateService/proto"
@@ -235,6 +236,15 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 		DebugLogger.Println("Succesfully loaded TLS certificates")
 	}
 
+	// Extract the user's JWT from the incoming request. Can ignore the ok output as ths has already been checked.
+	md, _ := metadata.FromIncomingContext(ctx)
+
+	// Create the interceptors required for this connection
+	clientAuthInterceptor := interceptors.ClientAuthStruct{ // Custom auth (JWT) interceptor
+		AccessToken:          md["authorisation"][0], // Pass the user's JWT to the outgoing request
+		AuthenticatedMethods: authMethods,
+	}
+
 	// Create the retry options to specify how the client should retry connection interrupts
 	retryOptions := []grpc_retry.CallOption{
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(100 * time.Millisecond)), // Use exponential backoff to progressively wait longer between retries
@@ -244,6 +254,7 @@ func (s *server) PowerEstimatorService(ctx context.Context, request *serverPB.Se
 	// Create an interceptor chain with the above interceptors
 	interceptorChain := grpc_middleware.ChainUnaryClient(
 		clientMetricInterceptor.ClientMetricInterceptor,
+		clientAuthInterceptor.ClientAuthInterceptor,
 		grpc_retry.UnaryClientInterceptor(retryOptions...),
 	)
 
