@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package prepareData;
-option go_package = "github.com/nicholasbunn/masters/src/prepareDataService/proto";
+option go_package = "github.com/nicholasbunn/mastersSandbox/src/prepareDataService/proto";
 
 message PrepareRequestMessage {
     repeated int64 index_number = 1;

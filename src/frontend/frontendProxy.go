@@ -14,8 +14,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	desktopPB "github.com/nicholasbunn/masters/src/desktopGateway/proto"
-	"github.com/nicholasbunn/masters/src/frontend/interceptors"
+	desktopPB "github.com/nicholasbunn/mastersSandbox/src/desktopGateway/proto"
+	"github.com/nicholasbunn/mastersSandbox/src/frontend/interceptors"
 )
 
 const (

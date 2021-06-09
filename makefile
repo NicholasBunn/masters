@@ -28,13 +28,13 @@ clean:
 run:
 
 server1:
-	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/masters/src/fetchDataService/fetchServer.py
+	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/mastersSandbox/src/fetchDataService/fetchServer.py
 
 server2:
-	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/masters/src/prepareDataService/prepareServer.py
+	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/mastersSandbox/src/prepareDataService/prepareServer.py
 
 server3:
-	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/masters/src/estimateService/estimateServer.py
+	/usr/bin/python3 /home/nic/go/src/github.com/nicholasbunn/mastersSandbox/src/estimateService/estimateServer.py
 
 SP1:
 	go run src/powerEstimationSP/powerEstimationSP.go

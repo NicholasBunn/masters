@@ -31,9 +31,9 @@ func TestSpinUpService(t *testing.T) {
 		ports          []string
 		expectedOutput bool
 	}{
-		{[]string{"python3"}, []string{"/home/nic/go/src/github.com/nicholasbunn/masters/src/fetchDataService/"}, []string{"fetchServer.py"}, []string{":50051"}, true}, // Tests for core functionality of single service (starting of Python service)
+		{[]string{"python3"}, []string{"/home/nic/go/src/github.com/nicholasbunn/mastersSandbox/src/fetchDataService/"}, []string{"fetchServer.py"}, []string{":50051"}, true}, // Tests for core functionality of single service (starting of Python service)
 		// {[]string{"python3", "python3"}, []string{"./src/fetchDataService/", "./src/estimateService/"}, []string{"fetchServer.py"}, {":50051", ":50052"}, false},                     // Tests for missing inputs (length mismatch of directories and filenames)
-		{[]string{"python3", "python3"}, []string{"home/nic/go/src/github.com/nicholasbunn/masters/src/fetchDataService/", "home/nic/go/src/github.com/nicholasbunn/masters/src/estimateService/"}, []string{"fetchServer.py", "estimateServer.py"}, []string{":50051", ":50052"}, true}, // Tests for core functionality of multiple services
+		{[]string{"python3", "python3"}, []string{"home/nic/go/src/github.com/nicholasbunn/mastersSandbox/src/fetchDataService/", "home/nic/go/src/github.com/nicholasbunn/mastersSandbox/src/estimateService/"}, []string{"fetchServer.py", "estimateServer.py"}, []string{":50051", ":50052"}, true}, // Tests for core functionality of multiple services
 	}
 
 	t.Run("Testing for core functionality of single Python service", func(t *testing.T) {

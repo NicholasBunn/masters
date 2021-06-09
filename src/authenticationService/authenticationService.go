@@ -12,7 +12,7 @@ import (
 
 	// Required packages
 	"github.com/go-yaml/yaml"
-	authentication "github.com/nicholasbunn/masters/src/authenticationStuff"
+	authentication "github.com/nicholasbunn/mastersSandbox/src/authenticationStuff"
 
 	// gRPC packages
 	"google.golang.org/grpc"
@@ -20,7 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	// Proto packages
-	serverPB "github.com/nicholasbunn/masters/src/authenticationService/proto"
+	serverPB "github.com/nicholasbunn/mastersSandbox/src/authenticationService/proto"
 )
 
 var (

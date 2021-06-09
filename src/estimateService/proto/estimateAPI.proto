@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package estimate;
-option go_package = "github.com/nicholasbunn/masters/src/fetchDataService/proto";
+option go_package = "github.com/nicholasbunn/mastersSandbox/src/fetchDataService/proto";
 
 message EstimateRequestMessage {
     repeated float port_prop_motor_speed = 1;

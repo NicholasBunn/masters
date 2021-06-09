@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package fetchData;
-option go_package = "github.com/nicholasbunn/masters/src/estimateService/proto";
+option go_package = "github.com/nicholasbunn/mastersSandbox/src/estimateService/proto";
 
 message FetchDataRequestMessage {
     string input_file = 1;

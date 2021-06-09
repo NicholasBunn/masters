@@ -4,11 +4,11 @@ FROM golang:alpine
 # Git is required for fetching the dependencies.
 RUN apk add --no-cache git
 
-WORKDIR $GOPATH/src/github.com/nicholasbunn/masters/
+WORKDIR $GOPATH/src/github.com/nicholasbunn/mastersSandbox/
 
 # Create a program logs folder in the service directory
 RUN mkdir ./program\ logs
-RUN mkdir -p $GOPATH/src/github.com/nicholasbunn/masters/src/powerEstimationSP
+RUN mkdir -p $GOPATH/src/github.com/nicholasbunn/mastersSandbox/src/powerEstimationSP
 
 COPY /src/powerEstimationSP/go.mod ./src/powerEstimationSP
 COPY /src/powerEstimationSP/go.sum ./src/powerEstimationSP
@@ -26,7 +26,7 @@ COPY src/fetchDataService/proto src/fetchDataService/proto
 COPY src/prepareDataService/proto src/prepareDataService/proto
 COPY src/estimateService/proto src/estimateService/proto
 
-WORKDIR $GOPATH/src/github.com/nicholasbunn/masters/src/powerEstimationSP/
+WORKDIR $GOPATH/src/github.com/nicholasbunn/mastersSandbox/src/powerEstimationSP/
 
 # Fetch the dependecies
 RUN go mod tidy
@@ -34,7 +34,7 @@ RUN go mod tidy
 # Build the binary. for grpc gateway
 RUN go build -o ./powerEstimationSP .
 
-WORKDIR $GOPATH/src/github.com/nicholasbunn/masters/
+WORKDIR $GOPATH/src/github.com/nicholasbunn/mastersSandbox/
 
 EXPOSE 50101
 ENTRYPOINT ["./src/powerEstimationSP/powerEstimationSP"]

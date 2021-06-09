@@ -15,16 +15,16 @@ import (
 	"google.golang.org/grpc/status"
 
 	// Personal packages
-	authentication "github.com/nicholasbunn/masters/src/authenticationStuff"
+	authentication "github.com/nicholasbunn/mastersSandbox/src/authenticationStuff"
 )
 
-// var (
-// 	// Logging stuff
-// 	DebugLogger   *log.Logger
-// 	InfoLogger    *log.Logger
-// 	WarningLogger *log.Logger
-// 	ErrorLogger   *log.Logger
-// )
+var (
+	// Logging stuff
+	DebugLogger   *log.Logger
+	InfoLogger    *log.Logger
+	WarningLogger *log.Logger
+	ErrorLogger   *log.Logger
+)
 
 func init() {
 	/* The init functin is used to set up the logger and metric interceptors whenever the service is started

@@ -22,13 +22,13 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	// Proto packages
-	estimateServicePB "github.com/nicholasbunn/masters/src/estimateService/proto"
-	fetchDataServicePB "github.com/nicholasbunn/masters/src/fetchDataService/proto"
-	serverPB "github.com/nicholasbunn/masters/src/powerEstimationSP/proto"
-	prepareDataServicePB "github.com/nicholasbunn/masters/src/prepareDataService/proto"
+	estimateServicePB "github.com/nicholasbunn/mastersSandbox/src/estimateService/proto"
+	fetchDataServicePB "github.com/nicholasbunn/mastersSandbox/src/fetchDataService/proto"
+	serverPB "github.com/nicholasbunn/mastersSandbox/src/powerEstimationSP/proto"
+	prepareDataServicePB "github.com/nicholasbunn/mastersSandbox/src/prepareDataService/proto"
 
 	// Interceptors
-	"github.com/nicholasbunn/masters/src/powerEstimationSP/interceptors"
+	"github.com/nicholasbunn/mastersSandbox/src/powerEstimationSP/interceptors"
 )
 
 var (

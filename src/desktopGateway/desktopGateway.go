@@ -16,7 +16,7 @@ import (
 	// Required packages
 
 	"github.com/go-yaml/yaml"
-	authentication "github.com/nicholasbunn/masters/src/authenticationStuff"
+	authentication "github.com/nicholasbunn/mastersSandbox/src/authenticationStuff"
 
 	// gRPC packages
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -26,12 +26,12 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	// Proto packages
-	authenticationPB "github.com/nicholasbunn/masters/src/authenticationService/proto"
-	serverPB "github.com/nicholasbunn/masters/src/desktopGateway/proto"
-	estimationPB "github.com/nicholasbunn/masters/src/powerEstimationSP/proto"
+	authenticationPB "github.com/nicholasbunn/mastersSandbox/src/authenticationService/proto"
+	serverPB "github.com/nicholasbunn/mastersSandbox/src/desktopGateway/proto"
+	estimationPB "github.com/nicholasbunn/mastersSandbox/src/powerEstimationSP/proto"
 
 	// Interceptors
-	"github.com/nicholasbunn/masters/src/desktopGateway/interceptors"
+	"github.com/nicholasbunn/mastersSandbox/src/desktopGateway/interceptors"
 )
 
 var (
